@@ -51,13 +51,11 @@ jobs:
           ad screenshot evidence/1-home.png
           echo "PASS: the app launched and rendered its home screen" > verdict.txt
 
-      - name: Stop the simulator
-        if: always()
-        run: npx --yes eas-cli@latest simulator:stop --non-interactive || true
-
-      - name: Collect the session data and build the site
+      # --stop: the tool stops the session, then collects its artifacts.
+      # (eas simulator:stop clears .env.eas-simulator, so do not stop first.)
+      - name: Stop the simulator, collect the session data, build the site
         run: |
-          npx --yes eas-simulator-evidence@latest run evidence \
+          npx --yes eas-simulator-evidence@latest run evidence --stop \
             --subject "PR #${{ github.event.pull_request.number }}" \
             --verdict-file verdict.txt --build-id "$BUILD_ID" --agent "agent-device"
 
@@ -68,6 +66,10 @@ jobs:
           path: evidence/site
       - id: pages
         uses: actions/deploy-pages@v4
+
+      - name: Stop the simulator if an earlier step failed
+        if: failure()
+        run: npx --yes eas-cli@latest simulator:stop --non-interactive || true
 
       # Option B: EAS Hosting at a stable per-PR alias. Replace A with:
       #   URL=$(npx --yes eas-simulator-evidence@latest deploy evidence \

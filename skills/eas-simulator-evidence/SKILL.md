@@ -24,13 +24,12 @@ You produce three things. The tool does the rest.
 
 ```sh
 # after the app has been driven and screenshots saved:
-npx eas-cli@latest simulator:stop --non-interactive          # the platform finalizes events, metrics, recording on stop
-npx eas-simulator-evidence@latest run evidence \
+npx eas-simulator-evidence@latest run evidence --stop \
   --subject "PR #12" --verdict-file verdict.txt \
   --build-id "$BUILD_ID"                                      # adds the "Try this build" button
 ```
 
-`run` reads the session id from `.env.eas-simulator` (eas-cli writes it) or `EAS_SIMULATOR_SESSION_ID`. It waits up to three minutes for the artifacts, then builds `evidence/site/`. A missing session never fails the run; the page is then screenshots only.
+`--stop` makes the tool stop the session before collecting. Do not run `eas simulator:stop` yourself first: it clears `.env.eas-simulator`, and the tool reads the session id from that file. If the session is already stopped, pass `--session <id>`. It waits up to three minutes for the artifacts, then builds `evidence/site/`. A missing session never fails the run; the page is then screenshots only.
 
 Then one of:
 
@@ -43,7 +42,7 @@ npx eas-simulator-evidence@latest comment evidence "$URL" --verdict-file verdict
 
 ## Rules
 
-- Stop the session before `collect` or `run`. Artifacts do not exist until then.
+- Let `run --stop` stop the session. Artifacts do not exist until the session stops, and stopping by hand first loses the id.
 - Never put a secret in a screenshot name, the verdict, or the report. The page is public once hosted.
 - One verdict per run. If several things failed, name the first screenshot that shows a failure and list the rest in the report.
 - Use `--json` when another program reads the result. It prints `{ siteDir, kind, verdict, images, url }`.

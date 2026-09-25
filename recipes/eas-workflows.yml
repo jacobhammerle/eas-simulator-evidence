@@ -84,12 +84,11 @@ jobs:
           echo "PASS: the app launched and rendered its home screen" > verdict.txt
           # -----------------------------------------------------------------
 
-          npx --yes eas-cli@latest simulator:stop --non-interactive
-          trap - EXIT
-
-          URL=$(npx --yes eas-simulator-evidence@latest run evidence \
+          # --stop: the tool stops the session, then collects its artifacts.
+          URL=$(npx --yes eas-simulator-evidence@latest run evidence --stop \
             --subject "PR #$PR_NUMBER" --verdict-file verdict.txt \
             --build-id "$BUILD_ID" --deploy-alias "pr-$PR_NUMBER-evidence")
+          trap - EXIT
           echo "Evidence site: $URL"
           set-output url "$URL"
 

@@ -22,9 +22,9 @@ evidence:
     # Drive the app: replace with your agent, Maestro flow, or script.
     - npx --yes eas-cli@latest simulator:exec npx agent-device@latest screenshot evidence/1-home.png --platform ios
     - echo "PASS: the app launched and rendered its home screen" > verdict.txt
-    - npx --yes eas-cli@latest simulator:stop --non-interactive
+    # --stop: the tool stops the session, then collects its artifacts.
     - >
-      npx --yes eas-simulator-evidence@latest run evidence
+      npx --yes eas-simulator-evidence@latest run evidence --stop
       --subject "MR !$CI_MERGE_REQUEST_IID" --verdict-file verdict.txt
       --build-id "$BUILD_ID" --agent "agent-device"
   after_script:

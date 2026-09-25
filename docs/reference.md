@@ -6,13 +6,14 @@ The full command reference, the verdict grammar, the session data schema, the pr
 
 ### collect
 
-Pulls the session's own artifacts into `<dir>/session/`: `session.json` (normalized facts, timeline, metrics, recording link), `events.ndjson`, and `metrics.ndjson`. Run it after `simulator:stop`. It polls `eas simulator:get` until the events and metrics artifacts exist, for up to three minutes by default.
+Pulls the session's own artifacts into `<dir>/session/`: `session.json` (normalized facts, timeline, metrics, recording link), `events.ndjson`, and `metrics.ndjson`. The artifacts exist only once the session has stopped. Pass `--stop` and the tool stops the session first. Do not run `eas simulator:stop` yourself before `collect`: it clears `.env.eas-simulator`, which is where the tool reads the session id. If the session is already stopped, pass `--session <id>`. It then polls `eas simulator:get` until the events and metrics artifacts exist, for up to three minutes by default.
 
 It never fails your pipeline. Without a session id or with a session it cannot read, it prints a note and exits 0, and the site is built from screenshots alone.
 
 | Option | Meaning |
 | --- | --- |
-| `--session <id>` | Session id. Default: `EAS_SIMULATOR_SESSION_ID`, then `.env.eas-simulator`, which eas-cli writes on `simulator:start` |
+| `--stop` | Stop the session before collecting, through `eas simulator:stop --id` |
+| `--session <id>` | Session id. Default: `EAS_SIMULATOR_SESSION_ID`, then `.env.eas-simulator`, which eas-cli writes on `simulator:start` and clears on `simulator:stop` |
 | `--dotenv <path>` | Dotenv file to read the session id from |
 | `--extra k=v` | Extra fact stored in `session.json`. Repeatable |
 | `--wait <seconds>` | Max wait for the artifacts. Default 180 |

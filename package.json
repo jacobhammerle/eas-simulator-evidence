@@ -1,6 +1,6 @@
 {
   "name": "eas-simulator-evidence",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Turn an EAS Simulator run into a static evidence site: verdict, screenshots, action timeline, CPU and memory charts, and the session recording.",
   "author": "Jacob Hammerle",
   "keywords": [

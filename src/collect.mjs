@@ -5,9 +5,10 @@
 //   normalizeSession({ session, eventsText, metricsText, extra }) -> session summary
 //
 // The session id comes from the sessionId option, EAS_SIMULATOR_SESSION_ID,
-// or .env.eas-simulator (eas-cli leaves the id there after simulator:stop).
-// Run it AFTER simulator:stop: the platform finalizes the artifacts on stop
-// (performance metrics, session events, the screen recording, screenshots).
+// or .env.eas-simulator. NOTE: `eas simulator:stop` clears that file, so
+// either pass `stop: true` and let this function stop the session itself,
+// or read the id before stopping. The platform finalizes the artifacts on
+// stop (performance metrics, session events, the screen recording).
 // It polls simulator:get for up to maxWaitMs until the events and metrics
 // artifacts appear.
 //
@@ -46,6 +47,14 @@ export function parseCliJson(raw) {
   const start = s.indexOf("{");
   if (start < 0) throw new Error("no JSON object in eas-cli output");
   return JSON.parse(s.slice(start));
+}
+
+export function runEasSimulatorStop(sessionId, easCliVersion = "latest") {
+  execFileSync(
+    "npx",
+    ["--yes", `eas-cli@${easCliVersion}`, "simulator:stop", "--id", sessionId, "--non-interactive"],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+  );
 }
 
 export function runEasSimulatorGet(sessionId, easCliVersion = "latest") {
@@ -386,9 +395,13 @@ export async function collectSession({
   // Download the platform's own screenshots into the evidence dir when it
   // holds no images yet, so a run that never saved a file still gets a page.
   screenshots = false,
+  // Stop the session first. eas simulator:stop clears .env.eas-simulator,
+  // so stopping here keeps the id in hand for the collect that follows.
+  stop = false,
   log = console,
   // Injection points for tests.
   getSession = (id) => runEasSimulatorGet(id, easCliVersion),
+  stopSession = (id) => runEasSimulatorStop(id, easCliVersion),
   fetchText = async (url) => {
     const res = await fetch(url, { redirect: "follow" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -412,6 +425,15 @@ export async function collectSession({
       "no session id (pass --session, set EAS_SIMULATOR_SESSION_ID, or keep .env.eas-simulator); skipping.",
     );
     return null;
+  }
+
+  if (stop) {
+    try {
+      await stopSession(sessionId);
+      note(`stopped session ${sessionId}`);
+    } catch (e) {
+      note(`simulator:stop failed (continuing): ${String(e.message).split("\n")[0]}`);
+    }
   }
 
   // After simulator:stop the platform uploads the events first and the

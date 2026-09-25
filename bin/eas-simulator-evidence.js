@@ -63,8 +63,10 @@ build    Write the static site to <dir>/site/ (or --out).
   --json                Print a JSON summary to stdout
 
 collect  Pull the session's own artifacts (events, metrics, recording link)
-         into <dir>/session/. Run it after \`eas simulator:stop\`. Never fails
-         the pipeline: a missing session prints a note and exits 0.
+         into <dir>/session/. Never fails the pipeline: a missing session
+         prints a note and exits 0.
+  --stop                Stop the session first (eas simulator:stop clears
+                        .env.eas-simulator, so let the tool do the stopping)
   --session <id>        EAS Simulator session id. Default: EAS_SIMULATOR_SESSION_ID,
                         then .env.eas-simulator
   --dotenv <path>       Dotenv to read the session id from. Default: .env.eas-simulator
@@ -122,12 +124,12 @@ Global
 `;
 
 const REPEAT = ["extra", "line"];
-const FLAGS = ["json", "badge", "help", "version", "force", "no-browser", "dry-run", "screenshots", "h", "v"];
+const FLAGS = ["json", "badge", "help", "version", "force", "no-browser", "dry-run", "screenshots", "stop", "h", "v"];
 
 // Every option each command accepts, camelCase. Anything else is a typo,
 // and a typo that is silently ignored is worse than an error.
 const COMMON_BUILD = ["subject", "verdict", "verdictFile", "reportFile", "out", "name", "owner", "slug", "projectDir", "agent", "buildId", "lane", "url", "junit", "json"];
-const COMMON_COLLECT = ["session", "dotenv", "extra", "wait", "easCliVersion", "screenshots", "json"];
+const COMMON_COLLECT = ["session", "dotenv", "extra", "wait", "easCliVersion", "screenshots", "stop", "json"];
 const OPTIONS = {
   run: [...COMMON_BUILD, ...COMMON_COLLECT, "deployAlias"],
   build: COMMON_BUILD,
@@ -211,6 +213,7 @@ function collectOptions(a, dir) {
     maxWaitMs: a.wait !== undefined ? Number(a.wait) * 1000 : undefined,
     easCliVersion: a.easCliVersion,
     screenshots: Boolean(a.screenshots),
+    stop: Boolean(a.stop),
     log: notes,
   };
 }

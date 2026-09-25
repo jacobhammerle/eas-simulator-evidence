@@ -335,3 +335,31 @@ test("collectSession returns null without a session id, and reads one from the e
 test("collectSession requires a dir", async () => {
   await assert.rejects(collectSession({ sessionId: "s" }), /dir is required/);
 });
+
+test("collectSession --stop stops the session first, and a failed stop does not abort", async () => {
+  const dir = fresh("stop");
+  const calls = [];
+  const rec = recorder();
+  const out = await collectSession({
+    dir, sessionId: "s1", stop: true, pollMs: 1, maxWaitMs: 1, log: rec,
+    stopSession: async (id) => { calls.push(id); },
+    getSession: async () => { calls.push("get"); return raw(); },
+    fetchText: fetchFromFixture, sleep: async () => {},
+  });
+  assert.deepEqual(calls.slice(0, 2), ["s1", "get"], "stop runs before the first simulator:get");
+  assert.equal(out.timeline.length, 13);
+  assert.ok(rec.logs.some((l) => /stopped session s1/.test(l)));
+
+  const rec2 = recorder();
+  const out2 = await collectSession({
+    dir: fresh("stop2"), sessionId: "s2", stop: true, pollMs: 1, maxWaitMs: 1, log: rec2,
+    stopSession: async () => { throw new Error("Not authorized\nstack"); },
+    getSession: async () => raw(), fetchText: fetchFromFixture, sleep: async () => {},
+  });
+  assert.equal(out2.id, "01a0d92e-195f-7045-a13c-23181fd8fc70");
+  assert.ok(rec2.logs.some((l) => /simulator:stop failed \(continuing\): Not authorized$/.test(l)));
+
+  let stopped = false;
+  await collectSession({ dir: fresh("stop3"), sessionId: "s3", stop: false, pollMs: 1, maxWaitMs: 1, log: quiet, stopSession: async () => { stopped = true; }, getSession: async () => raw(), fetchText: fetchFromFixture, sleep: async () => {} });
+  assert.equal(stopped, false, "no --stop, no stop");
+});

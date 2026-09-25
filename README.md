@@ -70,13 +70,10 @@ npx eas-cli@latest simulator:start --platform ios --type agent-device \
 npx eas-cli@latest simulator:exec npx agent-device@latest screenshot evidence/1-home.png --platform ios
 echo "PASS: the home screen rendered" > verdict.txt
 
-# 3. Stop the session
-npx eas-cli@latest simulator:stop --non-interactive
+# 3. Stop the session, collect its data, and build the site into evidence/site/
+npx eas-simulator-evidence@latest run evidence --stop --subject "PR #12" --verdict-file verdict.txt --build-id "$BUILD_ID"
 
-# 4. Collect the session data and build the site into evidence/site/
-npx eas-simulator-evidence@latest run evidence --subject "PR #12" --verdict-file verdict.txt --build-id "$BUILD_ID"
-
-# 5. Look at it locally, or host it. With EAS Hosting:
+# 4. Look at it locally, or host it. With EAS Hosting:
 npx eas-simulator-evidence@latest open evidence
 npx eas-simulator-evidence@latest deploy evidence --alias pr-12-evidence
 ```

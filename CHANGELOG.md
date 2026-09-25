@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-25
+
+### Added
+
+- `--stop` on `collect` and `run`, and a `stop` input on the Action: the tool stops the session itself before collecting.
+
+### Fixed
+
+- `eas simulator:stop` clears `.env.eas-simulator`, so a `collect` after a manual stop found no session id and silently built a screenshots-only page. The recipes, the skill file, and the docs now stop through the tool.
+
 ## [0.1.0] - 2026-09-25
 
 ### Added
@@ -23,5 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `comment`, `index`, and `sweep` commands, `--junit` and `--url` on `build` and `run`.
 - A skill file for AI agents at `skills/eas-simulator-evidence/SKILL.md`.
 
-[Unreleased]: https://github.com/jacobhammerle/eas-simulator-evidence/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jacobhammerle/eas-simulator-evidence/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/jacobhammerle/eas-simulator-evidence/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/jacobhammerle/eas-simulator-evidence/releases/tag/v0.1.0

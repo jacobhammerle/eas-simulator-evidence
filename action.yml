@@ -25,6 +25,10 @@ inputs:
   session:
     description: The EAS Simulator session id. Default is EAS_SIMULATOR_SESSION_ID or .env.eas-simulator.
     required: false
+  stop:
+    description: 'Stop the session before collecting. Set this instead of running eas simulator:stop yourself, which clears .env.eas-simulator.'
+    required: false
+    default: "false"
   build-id:
     description: The EAS build id the run used. Adds the "Try this build" button.
     required: false
@@ -79,6 +83,7 @@ runs:
         IN_VERDICT_FILE: ${{ inputs.verdict-file }}
         IN_REPORT_FILE: ${{ inputs.report-file }}
         IN_SESSION: ${{ inputs.session }}
+        IN_STOP: ${{ inputs.stop }}
         IN_BUILD_ID: ${{ inputs.build-id }}
         IN_AGENT: ${{ inputs.agent }}
         IN_LANE: ${{ inputs.lane }}
@@ -94,6 +99,7 @@ runs:
         [ -n "$IN_VERDICT_FILE" ] && args+=(--verdict-file "$IN_VERDICT_FILE")
         [ -n "$IN_REPORT_FILE" ] && args+=(--report-file "$IN_REPORT_FILE")
         [ -n "$IN_SESSION" ] && args+=(--session "$IN_SESSION")
+        [ "$IN_STOP" = "true" ] && args+=(--stop)
         [ -n "$IN_BUILD_ID" ] && args+=(--build-id "$IN_BUILD_ID")
         [ -n "$IN_AGENT" ] && args+=(--agent "$IN_AGENT")
         [ -n "$IN_LANE" ] && args+=(--lane "$IN_LANE")

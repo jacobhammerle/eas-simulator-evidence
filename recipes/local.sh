@@ -27,14 +27,12 @@ exec_ad snapshot -i > /dev/null
 exec_ad screenshot "$EVIDENCE/2-after-snapshot.png"
 VERDICT="PASS: the app launched and rendered its home screen"
 
-# 3. Stop the session. The platform finalizes the session artifacts
-#    (events, metrics, recording) after stop.
-npx --yes eas-cli@latest simulator:stop --non-interactive
-trap - EXIT
-
-# 4. Collect the session artifacts and build the site.
-npx --yes eas-simulator-evidence@latest run "$EVIDENCE" \
+# 3. Stop the session, collect its artifacts, and build the site. --stop
+#    lets the tool stop the session: `eas simulator:stop` clears
+#    .env.eas-simulator, and the tool needs the id from it first.
+npx --yes eas-simulator-evidence@latest run "$EVIDENCE" --stop \
   --subject "Local run" --verdict "$VERDICT" \
   --build-id "$BUILD_ID" --agent "agent-device"
+trap - EXIT
 
 open "$EVIDENCE/site/index.html" 2>/dev/null || xdg-open "$EVIDENCE/site/index.html"

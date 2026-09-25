@@ -337,9 +337,9 @@ test("cli: sweep validates its number and accepts a dry run without an account",
   assert.match(r.stderr, /--older-than must be a number/);
 });
 
-test("cli: collect accepts --screenshots as a flag", () => {
+test("cli: collect accepts --screenshots and --stop as flags", () => {
   const dir = fresh("flag");
-  const r = cli(["collect", dir, "--screenshots", "--dotenv", join(dir, "none")], { env: { EAS_SIMULATOR_SESSION_ID: "" } });
+  const r = cli(["collect", dir, "--screenshots", "--stop", "--dotenv", join(dir, "none")], { env: { EAS_SIMULATOR_SESSION_ID: "" } });
   assert.equal(r.code, 0, r.stderr);
   assert.match(r.stderr, /no session id/);
 });
