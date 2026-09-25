@@ -11,10 +11,10 @@ inputs:
     required: false
     default: evidence
   subject:
-    description: The page label, for example "PR #12".
+    description: 'The page label, for example "PR #12".'
     required: true
   verdict:
-    description: The verdict line, for example "PASS: the checkout flow completed". Use this or verdict-file.
+    description: 'The verdict line, for example "PASS: the checkout flow completed". Use this or verdict-file.'
     required: false
   verdict-file:
     description: A file whose first line is the verdict and whose remaining lines are the agent's report.
@@ -60,7 +60,7 @@ outputs:
     description: The folder that holds the built site.
     value: ${{ steps.run.outputs.site-dir }}
   kind:
-    description: The verdict kind: pass, fail, replicated, or neutral.
+    description: 'The verdict kind: pass, fail, replicated, or neutral.'
     value: ${{ steps.run.outputs.kind }}
   verdict:
     description: The normalized verdict line.

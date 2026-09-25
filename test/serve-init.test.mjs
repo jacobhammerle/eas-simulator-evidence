@@ -219,6 +219,17 @@ test("action.yml declares the inputs the CLI accepts and the outputs the run emi
   assert.doesNotMatch(y, /npx eas-simulator-evidence/, "the action runs its own checkout, not a registry version");
 });
 
+test("action.yml descriptions with a colon are quoted, or GitHub cannot parse the manifest", () => {
+  const y = readFileSync(join(root, "action.yml"), "utf8");
+  for (const line of y.split("\n")) {
+    const m = /^\s*description:\s(.*)$/.exec(line);
+    if (!m) continue;
+    const v = m[1];
+    if (/^['"]/.test(v)) continue;
+    assert.doesNotMatch(v, /: |#/, `unquoted description with a colon or hash: ${line.trim()}`);
+  }
+});
+
 test("the action's shell step composes the same flags the CLI accepts", () => {
   const y = readFileSync(join(root, "action.yml"), "utf8");
   const flags = [...y.matchAll(/args\+=\((--[a-z-]+)/g)].map((m) => m[1]);
