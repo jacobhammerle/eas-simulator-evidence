@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `--stop` on `collect` and `run`, and a `stop` input on the Action: the tool stops the session itself before collecting.
+- A "Driving the app so the evidence is right" section in the skill file, from the first real runs: open the app before the first screenshot, re-read the tree before every tap, verify screens from the tree, wait after taps, stop through the tool.
 
 ### Fixed
 

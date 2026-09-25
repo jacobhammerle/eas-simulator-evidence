@@ -40,6 +40,18 @@ npx eas-simulator-evidence@latest comment evidence "$URL" --verdict-file verdict
   | gh pr comment 12 --body-file -                                     # the PR comment
 ```
 
+## Driving the app so the evidence is right
+
+Lessons from real runs with agent-device on EAS Simulator:
+
+- **`open <bundleId>` first, always.** Even when `simulator:start --build-id` installed and launched the app, `screenshot` and `snapshot` fail with `SESSION_NOT_FOUND` until you run `open`.
+- **Re-read the tree before every tap.** `snapshot -i` refs (`@e8`) are numbered per screen. A ref from the Home tree points at something else on the Shop screen. A tap with a stale ref lands on the wrong control and the run is wrong without any error. Pattern: `snapshot -i` → find the ref by its label → `press` → wait → `screenshot` → `snapshot -i` again.
+- **Verify from the tree, not from the tap.** A tap that "worked" proves nothing. Before you write PASS for a screen, find its evidence in the tree: the tab button marked `[selected]`, a `screen-<name>` node, a heading. Put that check in the report.
+- **Wait after a tap.** Two to four seconds before the screenshot, or the capture shows the old screen.
+- **Name the session** with `--name "<what this run checks>"`. It is how a human finds it on expo.dev later.
+- **Stop through the tool.** `run --stop` stops the session and keeps its id. A manual `eas simulator:stop` first clears `.env.eas-simulator` and the page ends up with no session data.
+- **One session per run.** If a session is still booting, wait for it. Starting another creates a second bill and overwrites the dotenv.
+
 ## Rules
 
 - Let `run --stop` stop the session. Artifacts do not exist until the session stops, and stopping by hand first loses the id.
