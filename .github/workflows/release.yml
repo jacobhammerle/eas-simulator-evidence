@@ -21,12 +21,15 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or newer; Node 22 ships npm 10.
+      - run: npm install -g npm@latest && npm --version
       - run: npm test
       - name: Check the tag matches package.json
         run: |
           v=$(node -p "require('./package.json').version")
           test "v$v" = "${GITHUB_REF_NAME}" || { echo "tag ${GITHUB_REF_NAME} != package.json v$v"; exit 1; }
-      - run: npm publish --provenance --access public
+      # With trusted publishing, provenance is attached automatically.
+      - run: npm publish --access public
       - name: GitHub release from the changelog
         env:
           GH_TOKEN: ${{ github.token }}
