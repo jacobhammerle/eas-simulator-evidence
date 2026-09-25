@@ -48,7 +48,7 @@
     "provenance": true
   },
   "scripts": {
-    "test": "node --test",
+    "test": "node --test --test-timeout=60000 --test-force-exit",
     "demo:build": "node bin/eas-simulator-evidence.js build fixtures/qa-checklist-ios --subject \"QA swarm · iOS · checklist\" --verdict-file fixtures/qa-checklist-ios/verdict.txt --name \"Employee Onboarding\" --owner sunrise-solutions --slug employee-onboarding --agent expo-bot --build-id 0123456789abcdef0123456789abcdef --out .demo",
     "demo": "npm run -s demo:build && (open .demo/index.html 2>/dev/null || xdg-open .demo/index.html)"
   }
