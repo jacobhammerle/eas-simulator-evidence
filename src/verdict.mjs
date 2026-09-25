@@ -29,7 +29,7 @@ const KW = `(?:${KEYWORDS.join("|")})`;
 //   - anything else is malformed and becomes "<fallback>: malformed ..."
 export function normalizeVerdict(line, fallback = "FAIL") {
   let s = String(line ?? "")
-    .split("\n")[0]
+    .split(/\r?\n/)[0]
     .trim();
   s = s.replace(new RegExp(`^(?:${KW}:\\s*)+(?=${KW}:)`), "");
   if (/^PASS:.*FAIL:/.test(s)) return `FAIL: ${s.replace(/^.*FAIL:\s*/, "")}`;

@@ -28,7 +28,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
-      - run: npm test
+      - run: npm test -- --test-reporter=spec --test-reporter-destination=stdout
       - run: npm pack --dry-run
 
   action:

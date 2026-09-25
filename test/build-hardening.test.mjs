@@ -7,6 +7,7 @@ import { buildSite } from "../src/build.mjs";
 import { fresh, quiet, makeEvidence, html, htmlNoScript, cleanOut, readFixtureSession } from "./helpers.mjs";
 
 after(cleanOut);
+const notWindows = { skip: process.platform === "win32" ? "file name not allowed on Windows" : false };
 
 const LEAK = /\b(NaN|undefined|\[object Object\])\b|(?<![\w-])null(?![\w-])/;
 
@@ -160,7 +161,7 @@ test("html and script injection through every text field is escaped", () => {
   assert.doesNotMatch(scriptJson, /<\//);
 });
 
-test("a screenshot named like html cannot break the markup", () => {
+test("a screenshot named like html cannot break the markup", notWindows, () => {
   const dir = makeEvidence({ images: [`1-<img src=x onerror=alert(1)>.png`, `2-"quoted".png`] });
   const out = fresh("evilname");
   buildSite({ dir, subject: "x", verdict: "PASS: x", out, log: quiet });

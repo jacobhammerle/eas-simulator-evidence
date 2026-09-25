@@ -1,0 +1,7 @@
+# Check out with LF everywhere, so fixtures, the skill file and the tests
+# read the same on Windows as on macOS and Linux.
+* text=auto eol=lf
+*.png binary
+*.woff2 binary
+*.mp4 binary
+*.mov binary

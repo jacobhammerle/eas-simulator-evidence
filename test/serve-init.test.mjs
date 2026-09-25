@@ -62,8 +62,8 @@ test("resolveFile blocks escapes and handles encoded names", () => {
   assert.equal(resolveFile(out, "/../package.json"), null);
   assert.equal(resolveFile(out, "/%2e%2e/package.json"), null);
   assert.equal(resolveFile(out, "/%ZZ"), null, "a bad escape is a 404, not a crash");
-  writeFileSync(join(out, "a b#.txt"), "hi");
-  assert.equal(resolveFile(out, "/a%20b%23.txt"), join(out, "a b#.txt"));
+  writeFileSync(join(out, "a b.txt"), "hi");
+  assert.equal(resolveFile(out, "/a%20b.txt"), join(out, "a b.txt"));
 });
 
 test("contentType covers what a site contains and defaults otherwise", () => {

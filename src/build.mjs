@@ -329,7 +329,7 @@ const siteUrl = safeUrl(url).replace(/\/+$/, "");
 
 // The agent's written report, when there is one: plain text, kept as
 // typed, folded when long.
-const reportText = String(report ?? "").trim();
+const reportText = String(report ?? "").replace(/\r\n?/g, "\n").trim();
 let reportHtml = "";
 if (reportText) {
   const lines = reportText.split("\n").length;

@@ -167,7 +167,7 @@ function readVerdictAndReport(a) {
   let report = "";
   if (a.verdictFile) {
     if (!existsSync(a.verdictFile)) fail(`verdict file not found: ${a.verdictFile}`);
-    const [first, ...rest] = readFileSync(a.verdictFile, "utf8").split("\n");
+    const [first, ...rest] = readFileSync(a.verdictFile, "utf8").split(/\r?\n/);
     verdict ||= first;
     report = rest.join("\n").trim();
   }

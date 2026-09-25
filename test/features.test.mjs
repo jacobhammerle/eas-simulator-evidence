@@ -345,7 +345,7 @@ test("cli: collect accepts --screenshots as a flag", () => {
 });
 
 test("the skill file exists, has frontmatter, and names the real commands", () => {
-  const skill = readFileSync(join(root, "skills", "eas-simulator-evidence", "SKILL.md"), "utf8");
+  const skill = readFileSync(join(root, "skills", "eas-simulator-evidence", "SKILL.md"), "utf8").replace(/\r\n/g, "\n");
   assert.match(skill, /^---\nname: eas-simulator-evidence\ndescription: .+\n---\n/);
   const help = cli(["--help"]).stdout;
   for (const cmd of ["run", "open", "deploy", "comment"]) {

@@ -82,7 +82,13 @@ export function serveSite({ root, host = "127.0.0.1", port = 0 } = {}) {
       resolvePromise({
         url: `http://${shownHost}:${actual}/`,
         port: actual,
-        close: () => new Promise((r) => server.close(r)),
+        // Keep-alive sockets from a browser or fetch would otherwise hold
+        // close() open until they time out.
+        close: () =>
+          new Promise((r) => {
+            server.closeAllConnections?.();
+            server.close(() => r());
+          }),
       });
     });
   });

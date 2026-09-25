@@ -9,6 +9,7 @@ import { deploySite, parseDeployOutput } from "../src/deploy.mjs";
 import { fixture, fresh, quiet, makeEvidence, cleanOut } from "./helpers.mjs";
 
 after(cleanOut);
+const notWindows = { skip: process.platform === "win32" ? "file name not allowed on Windows" : false };
 
 // --- thumbs ------------------------------------------------------------------
 
@@ -22,7 +23,7 @@ test("thumbs prints one linked image per screenshot, in order, capped", () => {
   assert.equal(thumbsHtml({ dir: fixture, siteUrl: "https://e.com", max: 1, width: 80 }).match(/width="80"/g).length, 1);
 });
 
-test("thumbs encodes and escapes file names", () => {
+test("thumbs encodes and escapes file names", notWindows, () => {
   const dir = makeEvidence({ images: ['1-a b"c&d.png'] });
   const html = thumbsHtml({ dir, siteUrl: "https://e.com" });
   assert.match(html, /href="https:\/\/e\.com\/1-a%20b%22c%26d\.png"/);
@@ -109,7 +110,7 @@ test("deploySite passes a relative export dir and the alias to eas-cli", () => {
   });
   assert.equal(r.url, "https://a");
   assert.equal(call.file, "npx");
-  assert.deepEqual(call.args, ["--yes", "eas-cli@24.0.0", "deploy", "--export-dir", "evidence/site", "--non-interactive", "--json", "--alias", "pr-1-evidence"]);
+  assert.deepEqual(call.args, ["--yes", "eas-cli@24.0.0", "deploy", "--export-dir", join("evidence", "site"), "--non-interactive", "--json", "--alias", "pr-1-evidence"]);
   assert.equal(call.options.cwd, projectDir);
 });
 
@@ -121,7 +122,7 @@ test("deploySite without an alias, and with a site outside the project dir", () 
   deploySite({ siteDir, projectDir, log: quiet, exec: (_f, a) => { args = a; return '{"url":"https://u"}'; } });
   assert.ok(!args.includes("--alias"));
   const exportDir = args[args.indexOf("--export-dir") + 1];
-  assert.match(exportDir, /^\.\.\//, "relative path climbs out of the project dir");
+  assert.match(exportDir, /^\.\.[\\/]/, "relative path climbs out of the project dir");
   assert.throws(() => deploySite({ log: quiet, exec: () => "" }), /siteDir is required/);
 });
 

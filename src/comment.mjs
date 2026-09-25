@@ -28,7 +28,7 @@ export function commentMarkdown({
   if (bullets.length) parts.push("", ...bullets);
   const thumbs = siteUrl ? thumbsHtml({ dir, siteUrl, max }) : "";
   if (thumbs) parts.push("", thumbs);
-  const text = String(report || "").trim();
+  const text = String(report || "").replace(/\r\n?/g, "\n").trim();
   if (text) parts.push("", "<details>", "<summary>Full report</summary>", "", text, "", "</details>");
   const foot = footer ?? (agent ? `_Posted by ${agent}._` : "");
   if (foot) parts.push("", foot);

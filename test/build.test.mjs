@@ -17,6 +17,7 @@ import {
 } from "./helpers.mjs";
 
 after(cleanOut);
+const notWindows = { skip: process.platform === "win32" ? "file name not allowed on Windows" : false };
 
 const full = () => {
   const out = fresh("full");
@@ -323,7 +324,7 @@ test("captions come from file names in several spellings", () => {
   assert.deepEqual(labels, ["Home screen", "Settings Page", "3.jpeg", "A b c", "5-.png", "No number"]);
 });
 
-test("file names with spaces, unicode, and reserved characters resolve", () => {
+test("file names with spaces, unicode, and reserved characters resolve", notWindows, () => {
   const names = ["1-Écran d'accueil.png", "2-100% done #1.png", "3-what?.png"];
   const dir = makeEvidence({ images: names });
   const out = fresh("urls");
