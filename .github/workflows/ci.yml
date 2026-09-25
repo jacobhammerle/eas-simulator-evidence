@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        node: [20, 22, 24]
+        include:
+          - os: macos-latest
+            node: 22
+          - os: windows-latest
+            node: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+      - run: npm pack --dry-run
+
+  action:
+    name: The GitHub Action builds the fixture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: evidence
+        uses: ./
+        with:
+          dir: fixtures/qa-checklist-ios
+          subject: CI check
+          verdict-file: fixtures/qa-checklist-ios/verdict.txt
+          name: Employee Onboarding
+          agent: expo-bot
+      - run: |
+          test "${{ steps.evidence.outputs.kind }}" = "pass"
+          test -f "${{ steps.evidence.outputs.site-dir }}/index.html"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: evidence-site
+          path: ${{ steps.evidence.outputs.site-dir }}

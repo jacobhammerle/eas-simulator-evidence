@@ -1,0 +1,55 @@
+{
+  "name": "eas-simulator-evidence",
+  "version": "0.1.0",
+  "description": "Turn an EAS Simulator run into a static evidence site: verdict, screenshots, action timeline, CPU and memory charts, and the session recording.",
+  "author": "Jacob Hammerle",
+  "keywords": [
+    "expo",
+    "eas",
+    "eas-simulator",
+    "simulator",
+    "emulator",
+    "evidence",
+    "qa",
+    "ci",
+    "agent"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacobhammerle/eas-simulator-evidence.git"
+  },
+  "homepage": "https://github.com/jacobhammerle/eas-simulator-evidence#readme",
+  "bugs": "https://github.com/jacobhammerle/eas-simulator-evidence/issues",
+  "type": "module",
+  "bin": {
+    "eas-simulator-evidence": "bin/eas-simulator-evidence.js"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "sideEffects": false,
+  "files": [
+    "bin",
+    "src",
+    "assets",
+    "recipes",
+    "skills",
+    "docs/reference.md",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "test": "node --test",
+    "demo:build": "node bin/eas-simulator-evidence.js build fixtures/qa-checklist-ios --subject \"QA swarm · iOS · checklist\" --verdict-file fixtures/qa-checklist-ios/verdict.txt --name \"Employee Onboarding\" --owner sunrise-solutions --slug employee-onboarding --agent expo-bot --build-id 0123456789abcdef0123456789abcdef --out .demo",
+    "demo": "npm run -s demo:build && (open .demo/index.html 2>/dev/null || xdg-open .demo/index.html)"
+  }
+}

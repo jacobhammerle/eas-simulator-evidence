@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/jacobhammerle/eas-simulator-evidence/discussions
+    about: Ask here. Issues are for bugs and concrete requests.
+  - name: EAS Simulator itself
+    url: https://docs.expo.dev/eas/simulator/
+    about: Problems starting or driving a simulator session belong with Expo, not this tool.

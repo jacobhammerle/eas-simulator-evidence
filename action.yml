@@ -1,0 +1,111 @@
+name: EAS Simulator evidence
+description: Build an evidence site from an EAS Simulator run. Screenshots, verdict, timeline, performance charts. Optionally deploy it to EAS Hosting.
+author: Jacob Hammerle
+branding:
+  icon: camera
+  color: blue
+
+inputs:
+  dir:
+    description: The evidence directory with the run's screenshots, relative to the working directory.
+    required: false
+    default: evidence
+  subject:
+    description: The page label, for example "PR #12".
+    required: true
+  verdict:
+    description: The verdict line, for example "PASS: the checkout flow completed". Use this or verdict-file.
+    required: false
+  verdict-file:
+    description: A file whose first line is the verdict and whose remaining lines are the agent's report.
+    required: false
+  report-file:
+    description: A text file for the "Agent report" section.
+    required: false
+  session:
+    description: The EAS Simulator session id. Default is EAS_SIMULATOR_SESSION_ID or .env.eas-simulator.
+    required: false
+  build-id:
+    description: The EAS build id the run used. Adds the "Try this build" button.
+    required: false
+  agent:
+    description: The agent name shown on the page.
+    required: false
+    default: Agent
+  lane:
+    description: A lane label shown in the run facts.
+    required: false
+  name:
+    description: App display name. Default is expo.name from app.json.
+    required: false
+  owner:
+    description: Expo account. Default is expo.owner from app.json.
+    required: false
+  slug:
+    description: Expo project slug. Default is expo.slug from app.json.
+    required: false
+  deploy-alias:
+    description: Deploy the site to EAS Hosting under this alias. Needs EXPO_TOKEN in the environment.
+    required: false
+  working-directory:
+    description: The Expo project root, where app.json lives.
+    required: false
+    default: .
+
+outputs:
+  url:
+    description: The deployed site URL, when deploy-alias was given.
+    value: ${{ steps.run.outputs.url }}
+  site-dir:
+    description: The folder that holds the built site.
+    value: ${{ steps.run.outputs.site-dir }}
+  kind:
+    description: The verdict kind: pass, fail, replicated, or neutral.
+    value: ${{ steps.run.outputs.kind }}
+  verdict:
+    description: The normalized verdict line.
+    value: ${{ steps.run.outputs.verdict }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        IN_DIR: ${{ inputs.dir }}
+        IN_SUBJECT: ${{ inputs.subject }}
+        IN_VERDICT: ${{ inputs.verdict }}
+        IN_VERDICT_FILE: ${{ inputs.verdict-file }}
+        IN_REPORT_FILE: ${{ inputs.report-file }}
+        IN_SESSION: ${{ inputs.session }}
+        IN_BUILD_ID: ${{ inputs.build-id }}
+        IN_AGENT: ${{ inputs.agent }}
+        IN_LANE: ${{ inputs.lane }}
+        IN_NAME: ${{ inputs.name }}
+        IN_OWNER: ${{ inputs.owner }}
+        IN_SLUG: ${{ inputs.slug }}
+        IN_DEPLOY_ALIAS: ${{ inputs.deploy-alias }}
+      run: |
+        set -euo pipefail
+        # The CLI ships with this action, so the version is the action's tag.
+        args=(run "$IN_DIR" --subject "$IN_SUBJECT" --json)
+        [ -n "$IN_VERDICT" ] && args+=(--verdict "$IN_VERDICT")
+        [ -n "$IN_VERDICT_FILE" ] && args+=(--verdict-file "$IN_VERDICT_FILE")
+        [ -n "$IN_REPORT_FILE" ] && args+=(--report-file "$IN_REPORT_FILE")
+        [ -n "$IN_SESSION" ] && args+=(--session "$IN_SESSION")
+        [ -n "$IN_BUILD_ID" ] && args+=(--build-id "$IN_BUILD_ID")
+        [ -n "$IN_AGENT" ] && args+=(--agent "$IN_AGENT")
+        [ -n "$IN_LANE" ] && args+=(--lane "$IN_LANE")
+        [ -n "$IN_NAME" ] && args+=(--name "$IN_NAME")
+        [ -n "$IN_OWNER" ] && args+=(--owner "$IN_OWNER")
+        [ -n "$IN_SLUG" ] && args+=(--slug "$IN_SLUG")
+        [ -n "$IN_DEPLOY_ALIAS" ] && args+=(--deploy-alias "$IN_DEPLOY_ALIAS")
+        out=$(node "${{ github.action_path }}/bin/eas-simulator-evidence.js" "${args[@]}")
+        echo "$out"
+        node -e '
+          const r = JSON.parse(process.argv[1]);
+          const fs = require("fs");
+          const line = (k, v) => fs.appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${String(v ?? "").replace(/\r?\n/g, " ")}\n`);
+          line("url", r.url); line("site-dir", r.siteDir); line("kind", r.kind); line("verdict", r.verdict);
+        ' "$out"

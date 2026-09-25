@@ -1,0 +1,13 @@
+node_modules/
+.DS_Store
+
+# Build output of `npm run demo` and of the tests
+.demo/
+fixtures/*/site/
+test/.out/
+
+# EAS Simulator session config (holds a session auth token)
+.env.eas-simulator
+
+# npm pack output
+*.tgz

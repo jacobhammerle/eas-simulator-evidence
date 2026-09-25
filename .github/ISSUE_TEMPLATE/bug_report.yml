@@ -1,0 +1,35 @@
+name: Bug report
+description: Something did not work or the page looks wrong
+labels: [bug]
+body:
+  - type: input
+    id: command
+    attributes:
+      label: The command you ran
+      placeholder: npx eas-simulator-evidence run evidence --subject "PR #12" --verdict-file verdict.txt
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: What happened
+      description: The output, the error, or a screenshot of the page.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: eas-simulator-evidence 0.1.0, Node 22.4, macOS 15
+    validations:
+      required: true
+  - type: textarea
+    id: session
+    attributes:
+      label: session.json
+      description: When the page is wrong, attach the session.json that produced it with anything private removed.
+      render: json

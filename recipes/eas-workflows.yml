@@ -1,0 +1,104 @@
+# Evidence for every pull request, as an EAS Workflow.
+#
+# Copy to .eas/workflows/pr-evidence.yml. On each PR it finds (or builds) a
+# simulator binary that matches the PR's native code, injects the PR's
+# JavaScript, drives the app on an EAS cloud simulator, and publishes the
+# evidence site to EAS Hosting at a stable per-PR alias.
+#
+# Environment variables (EAS dashboard → project → Environment variables):
+#   EXPO_TOKEN_SIMULATOR  a personal access token. The token EAS injects
+#                         into workflow jobs is restricted and cannot
+#                         create simulator sessions.
+#
+# The "drive" step is yours. It only has to save screenshots into
+# evidence/ in capture order and write a verdict line. Below it is a
+# minimal agent-device sequence; swap in an AI agent, Maestro, or Appium.
+name: PR evidence
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  fingerprint:
+    name: 1. Fingerprint native code
+    type: fingerprint
+
+  get_build:
+    name: 2. Find matching simulator build
+    type: get-build
+    needs: [fingerprint]
+    params:
+      platform: ios
+      profile: preview
+      simulator: true
+      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+      wait_for_in_progress: true
+
+  build:
+    name: 3. Build iOS simulator (native changed)
+    type: build
+    needs: [get_build]
+    if: ${{ !needs.get_build.outputs.build_id }}
+    params:
+      platform: ios
+      profile: preview
+
+  repack:
+    name: 3. Repack with the PR's JS
+    type: repack
+    needs: [get_build]
+    if: ${{ needs.get_build.outputs.build_id }}
+    params:
+      build_id: ${{ needs.get_build.outputs.build_id }}
+      profile: preview
+
+  evidence:
+    name: 4. Drive the app and publish evidence
+    needs: [get_build]
+    after: [build, repack]
+    environment: production
+    env:
+      BUILD_ID: ${{ after.build.outputs.build_id || after.repack.outputs.build_id }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    outputs:
+      url: ${{ steps.evidence.outputs.url }}
+    steps:
+      - uses: eas/checkout
+      - uses: eas/use_npm_token
+      - uses: eas/install_node_modules
+      - id: evidence
+        run: |
+          set -euo pipefail
+          export EXPO_TOKEN="$EXPO_TOKEN_SIMULATOR"
+          mkdir -p evidence
+
+          npx --yes eas-cli@latest simulator:start --platform ios --type agent-device \
+            --build-id "$BUILD_ID" --max-duration-minutes 20 --non-interactive \
+            --name "PR #$PR_NUMBER evidence"
+          trap 'npx --yes eas-cli@latest simulator:stop --non-interactive >/dev/null 2>&1 || true' EXIT
+
+          # ---- drive: replace with your agent, Maestro flow, or script ----
+          ad() { npx --yes eas-cli@latest simulator:exec npx agent-device@latest "$@" --platform ios; }
+          ad screenshot evidence/1-home.png
+          echo "PASS: the app launched and rendered its home screen" > verdict.txt
+          # -----------------------------------------------------------------
+
+          npx --yes eas-cli@latest simulator:stop --non-interactive
+          trap - EXIT
+
+          URL=$(npx --yes eas-simulator-evidence@latest run evidence \
+            --subject "PR #$PR_NUMBER" --verdict-file verdict.txt \
+            --build-id "$BUILD_ID" --deploy-alias "pr-$PR_NUMBER-evidence")
+          echo "Evidence site: $URL"
+          set-output url "$URL"
+
+  report:
+    name: 5. Report
+    type: doc
+    needs: [evidence]
+    params:
+      md: |
+        # Evidence for PR #${{ github.event.pull_request.number }}
+
+        [Open the evidence site](${{ needs.evidence.outputs.url }})

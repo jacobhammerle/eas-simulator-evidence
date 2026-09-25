@@ -1,0 +1,36 @@
+# Evidence for every merge request, as a GitLab CI job.
+#
+# Add to .gitlab-ci.yml. The site is kept as a job artifact and served by
+# GitLab's artifact browser; swap the last lines for EAS Hosting or Pages.
+#
+# CI/CD variables:
+#   EXPO_TOKEN               a personal access token with EAS Simulator access
+#   EAS_SIMULATOR_BUILD_ID   an EAS simulator build id for the code under test
+
+evidence:
+  image: node:22
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    BUILD_ID: $EAS_SIMULATOR_BUILD_ID
+  script:
+    - mkdir -p evidence
+    - >
+      npx --yes eas-cli@latest simulator:start --platform ios --type agent-device
+      --build-id "$BUILD_ID" --max-duration-minutes 20 --non-interactive
+      --name "MR !$CI_MERGE_REQUEST_IID evidence"
+    # Drive the app: replace with your agent, Maestro flow, or script.
+    - npx --yes eas-cli@latest simulator:exec npx agent-device@latest screenshot evidence/1-home.png --platform ios
+    - echo "PASS: the app launched and rendered its home screen" > verdict.txt
+    - npx --yes eas-cli@latest simulator:stop --non-interactive
+    - >
+      npx --yes eas-simulator-evidence@latest run evidence
+      --subject "MR !$CI_MERGE_REQUEST_IID" --verdict-file verdict.txt
+      --build-id "$BUILD_ID" --agent "agent-device"
+  after_script:
+    - npx --yes eas-cli@latest simulator:stop --non-interactive || true
+  artifacts:
+    paths:
+      - evidence/site
+    expose_as: "Simulator evidence"
+    expire_in: 30 days

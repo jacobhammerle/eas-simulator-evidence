@@ -1,0 +1,366 @@
+/* ============================================================
+   Expo Design System — Colors & Type
+   Derived from expo/styleguide tailwind.js + the Product SoT
+   and Design System Figma files.
+   Supports light & dark mode — function first.
+   ============================================================ */
+
+/* --- Fonts ---------------------------------------------------
+   Primary UI: Inter (variable)
+   Marketing display: Maison Neue (commercial; fallback to Inter)
+   Mono / code: JetBrains Mono (fallback to Menlo, Monaco)
+   Both faces are self-hosted from fonts/ (Google Fonts latin subsets, OFL);
+   the handoff stylesheet pointed at fonts.gstatic.com URLs that 404'd on
+   2026-09-21.
+------------------------------------------------------------- */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/Inter-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("fonts/JetBrainsMono-Variable.woff2") format("woff2");
+}
+
+:root {
+  /* Typography stacks */
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Maison Neue", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, Menlo, Monaco, "Cascadia Mono",
+    "Segoe UI Mono", Consolas, monospace;
+
+  /* Type scale — headers (Semi Bold 600 unless noted) */
+  --text-4xl: 3rem; /* 48 / 110% / -2px  */
+  --text-3xl: 2rem; /* 32 / 140% / -1px  */
+  --text-2xl: 1.5rem; /* 24 / 140% / -0.5 */
+  --text-xl: 1.25rem; /* 20 / 120% / -0.25 — Medium */
+  --text-lg: 1.125rem; /* 18 / 140% / 0    */
+  --text-base: 1rem; /* 16 / 140% / 0    */
+  --text-sm: 0.875rem; /* 14 / 140% / 0    */
+  --text-xs: 0.75rem; /* 12 / 160% / 0    */
+  --text-2xs: 0.625rem; /* 10 / 160% / 0    */
+
+  /* Tracking */
+  --tracking-4xl: -0.04em;
+  --tracking-3xl: -0.03125em;
+  --tracking-2xl: -0.0208em;
+  --tracking-xl: -0.0125em;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0em;
+
+  /* Line heights */
+  --leading-tight: 1.1;
+  --leading-snug: 1.2;
+  --leading-normal: 1.4;
+  --leading-relaxed: 1.5;
+  --leading-loose: 1.6;
+
+  /* Weights */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ---------- Palette — light (default) ---------- */
+  /* Neutrals (foundation) */
+  --palette-black: #000;
+  --palette-white: #fff;
+  --palette-blueblack: rgb(0, 0, 32); /* display headlines */
+
+  /* Gray scale (semantic greys) */
+  --gray-25: #fbfcfd;
+  --gray-50: #f9fafb;
+  --gray-75: #f5f5f7;
+  --gray-100: #f0f1f2;
+  --gray-150: #eaecf0;
+  --gray-200: #e1e4e8;
+  --gray-250: #dfe3e6;
+  --gray-300: #d7dbdf;
+  --gray-400: #c9d1d9;
+  --gray-500: #687076;
+  --gray-550: #5f6670;
+  --gray-600: #596068;
+  --gray-700: #37414a; /* approx */
+  --gray-800: #25292e;
+  --gray-850: #1b1f23;
+  --gray-900: #11181c;
+  --gray-950: #0f172a;
+
+  /* Brand + accents */
+  --brand-primary: var(--palette-black); /* primary brand color is black */
+  --brand-blue: #0072de; /* Expo blue */
+  --brand-cyan: rgb(126, 196, 231); /* soft cyan fill */
+  --brand-info: #0072de; /* link / info blue (matches brand) */
+  --brand-pink: rgb(234, 74, 170); /* accent / beta */
+  --brand-yellow: #ffd22c; /* tag / highlight */
+  --brand-green: rgb(9, 141, 72); /* positive */
+  --brand-red: rgb(207, 34, 46); /* danger */
+  --brand-orange: rgb(255, 138, 76); /* warning */
+
+  /* Soft semantic tints */
+  --tint-red: rgb(255, 220, 220);
+  --tint-green: rgb(220, 255, 228);
+  --tint-blue: rgb(219, 231, 255);
+  --tint-yellow: rgb(255, 244, 194);
+
+  /* Semantic tokens — LIGHT */
+  --bg-default: var(--palette-white);
+  --bg-subtle: var(--gray-50);
+  --bg-element: var(--gray-75);
+  --bg-hover: var(--gray-100);
+  --bg-active: var(--gray-150);
+  --bg-inverse: var(--gray-900);
+
+  --fg-default: var(--gray-900); /* body text */
+  --fg-secondary: var(--gray-600); /* supporting */
+  --fg-tertiary: var(--gray-500); /* metadata */
+  --fg-disabled: var(--gray-400);
+  --fg-link: var(--brand-info);
+  --fg-inverse: var(--palette-white);
+  --fg-display: var(--palette-blueblack);
+
+  --border-default: var(--gray-200);
+  --border-subtle: var(--gray-150);
+  --border-strong: var(--gray-300);
+  --border-focus: var(--brand-blue);
+
+  --icon-default: var(--gray-600);
+  --icon-secondary: var(--gray-500);
+
+  /* Status / semantic surfaces */
+  --status-success-bg: var(--tint-green);
+  --status-success-fg: var(--brand-green);
+  --status-danger-bg: var(--tint-red);
+  --status-danger-fg: var(--brand-red);
+  --status-info-bg: var(--tint-blue);
+  --status-info-fg: var(--brand-info);
+  --status-warning-bg: var(--tint-yellow);
+  --status-warning-fg: #8a6d00;
+
+  /* Surfaces for code / mono */
+  --code-bg: var(--gray-75);
+  --code-fg: var(--gray-900);
+  --code-border: var(--border-subtle);
+
+  /* Elevation / shadow system (from /Shadows) */
+  --shadow-input: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+  --shadow-button: 0 1px 2px 0 rgba(0, 0, 0, 0.08);
+  --shadow-micro:
+    0 1px 3px 0 rgba(0, 0, 0, 0.025), 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-tiny:
+    0 3px 6px 0 rgba(0, 0, 0, 0.08), 0 2px 4px 0 rgba(0, 0, 0, 0.07);
+  --shadow-popover: 0 2px 6px 0 rgba(0, 0, 0, 0.15);
+  --shadow-small: 0 5px 10px 0 rgba(0, 0, 0, 0.12);
+  --shadow-medium: 0 8px 30px 0 rgba(0, 0, 0, 0.12);
+  --shadow-large: 0 30px 60px 0 rgba(0, 0, 0, 0.12);
+  --shadow-focus: 0 0 0 3px rgba(0, 114, 222, 0.35);
+
+  /* Radii — generally small; software, not hardware */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-4xl: 40px;
+  --radius-pill: 9999px;
+
+  /* Spacing scale (rem-based, Tailwind-compatible) */
+  --space-px: 1px;
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-3-5: 0.875rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
+}
+
+/* ---------- Palette — DARK ---------- */
+[data-theme="dark"],
+.dark {
+  --bg-default: #0b0f14;
+  --bg-subtle: #111418;
+  --bg-element: #161a20;
+  --bg-hover: #1d2128;
+  --bg-active: #252932;
+  --bg-inverse: var(--palette-white);
+
+  --fg-default: #e6edf3;
+  --fg-secondary: #9aa4ae;
+  --fg-tertiary: #6e7781;
+  --fg-disabled: #484f58;
+  --fg-link: #4aa8ff;
+  --fg-inverse: #0b0f14;
+  --fg-display: #ffffff;
+
+  --border-default: #1f242c;
+  --border-subtle: #171b21;
+  --border-strong: #30363d;
+  --border-focus: #4aa8ff;
+
+  --icon-default: #9aa4ae;
+  --icon-secondary: #6e7781;
+
+  --code-bg: #0f1318;
+  --code-fg: #e6edf3;
+  --code-border: #1f242c;
+
+  --status-success-bg: rgba(9, 141, 72, 0.18);
+  --status-success-fg: #4ade80;
+  --status-danger-bg: rgba(207, 34, 46, 0.18);
+  --status-danger-fg: #ff7a7a;
+  --status-info-bg: rgba(33, 136, 255, 0.18);
+  --status-info-fg: #4aa8ff;
+  --status-warning-bg: rgba(255, 210, 44, 0.16);
+  --status-warning-fg: #ffd36b;
+
+  --shadow-input: 0 4px 4px 0 rgba(0, 0, 0, 0.45);
+  --shadow-button: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-micro:
+    0 1px 3px 0 rgba(0, 0, 0, 0.35), 0 1px 2px 0 rgba(0, 0, 0, 0.45);
+  --shadow-tiny:
+    0 3px 6px 0 rgba(0, 0, 0, 0.55), 0 2px 4px 0 rgba(0, 0, 0, 0.5);
+  --shadow-popover: 0 2px 6px 0 rgba(0, 0, 0, 0.6);
+  --shadow-small: 0 5px 10px 0 rgba(0, 0, 0, 0.55);
+  --shadow-medium: 0 8px 30px 0 rgba(0, 0, 0, 0.6);
+  --shadow-large: 0 30px 60px 0 rgba(0, 0, 0, 0.7);
+}
+
+/* ---------- Semantic typography helpers ---------- */
+html,
+body {
+  font-family: var(--font-sans);
+  color: var(--fg-default);
+  background: var(--bg-default);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: 3.25rem;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-4xl);
+  color: var(--fg-display);
+}
+.h1 {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-4xl);
+  line-height: 1.1;
+  letter-spacing: var(--tracking-4xl);
+  color: var(--fg-display);
+}
+.h2 {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-3xl);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-3xl);
+  color: var(--fg-display);
+}
+.h3 {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-2xl);
+  color: var(--fg-default);
+}
+.h4 {
+  font-weight: var(--weight-medium);
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-xl);
+  color: var(--fg-default);
+}
+.h5 {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-lg);
+  line-height: var(--leading-normal);
+  color: var(--fg-default);
+}
+.h6 {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--fg-default);
+}
+.p,
+p {
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--fg-default);
+}
+.p-sm {
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--fg-secondary);
+}
+.p-xs {
+  font-size: var(--text-xs);
+  line-height: var(--leading-loose);
+  color: var(--fg-tertiary);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--fg-secondary);
+}
+.code,
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--code-fg);
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius-sm);
+  padding: 0.08em 0.3em;
+}
+pre {
+  padding: 1rem 1.25rem;
+  overflow: auto;
+}
+pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+}

@@ -1,0 +1,5 @@
+PASS: the progress card went from 2 of 9 to 3 of 9 on toggle and back to 2 of 9
+
+The Checklist tab opened on "Joe Ryan · Marketing, 2 of 9 tasks complete (22%)".
+Toggling "Upload ID documents" on moved the card to 3 of 9 (33%). Toggling it
+back off returned the card to 2 of 9 (22%). The Reset checklist row was not touched.

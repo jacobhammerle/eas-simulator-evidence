@@ -1,0 +1,98 @@
+{
+  "id": "01a0d92e-195f-7045-a13c-23181fd8fc70",
+  "name": "QA swarm: iOS · checklist",
+  "tags": [
+    "qa-swarm"
+  ],
+  "type": "argent",
+  "status": "STOPPED",
+  "platform": "IOS",
+  "createdAt": "2026-09-25T15:27:52.159Z",
+  "startedAt": "2026-09-25T15:31:57.708Z",
+  "finishedAt": "2026-09-25T15:33:44.347Z",
+  "updatedAt": "2026-09-25T15:33:44.335Z",
+  "deviceRunSessionUrl": "https://expo.dev/accounts/sunrise-solutions/projects/employee-onboarding/simulator-sessions/01a0d92e-195f-7045-a13c-23181fd8fc70",
+  "remoteConfig": {
+    "toolsUrl": "https://argent-5acc9237b1aa7187df088668e4f59813.eas-simulator.ngrok.dev",
+    "toolsAuthToken": "REDACTED",
+    "webPreviewUrl": "https://expo.dev/simulator-preview/6dea060cbe7345a9f975b6a0d669c23b#token=REDACTED",
+    "previewApiUrl": "https://web-preview-6dea060cbe7345a9f975b6a0d669c23b.eas-simulator.ngrok.dev/?token=REDACTED"
+  },
+  "artifacts": [
+    {
+      "id": "01a0d933-8744-71cc-848f-544c7b45205c",
+      "name": "Performance metrics (iPhone 17)",
+      "filename": "metrics.ndjson",
+      "downloadUrl": "https://expo.dev/device-run-sessions/artifacts/7_YX9NNAa9Qkyz9ZJD7XVsE7vUf2YRmJnNq7k13p0S0",
+      "fileSizeBytes": 13962,
+      "metadata": {
+        "udid": "404F2659-7202-4450-8465-912BD2AB744B",
+        "hostCores": 5,
+        "__eas_type": "performance-metrics",
+        "deviceName": "iPhone 17",
+        "schemaVersion": 1,
+        "sampleIntervalMs": 1000
+      },
+      "createdAt": "2026-09-25T15:33:47.972Z",
+      "updatedAt": "2026-09-25T15:33:49.022Z"
+    },
+    {
+      "id": "01a0d933-8141-7079-ae78-609ab34c3b0a",
+      "name": "iPhone 17 screen recording (404F2659-…, started at Sep 25, 2026, 15:31:19.269 UTC)",
+      "filename": "f6306eaf-482c-4836-8ac7-1e189d60898c.mp4",
+      "downloadUrl": "https://expo.dev/device-run-sessions/artifacts/7wO1hpr5gUo32hnZDqIskC8LCBtUJREVBSS43rdq2Lg",
+      "fileSizeBytes": 10931950,
+      "metadata": {
+        "udid": "404F2659-7202-4450-8465-912BD2AB744B",
+        "width": 1206,
+        "height": 2622,
+        "__eas_type": "screen-recording",
+        "deviceName": "iPhone 17",
+        "firstFrameAt": "2026-09-25T15:31:19.269Z",
+        "runtimeDisplayName": "iOS 26.5",
+        "__eas_screen_recording": "1"
+      },
+      "createdAt": "2026-09-25T15:33:46.433Z",
+      "updatedAt": "2026-09-25T15:33:49.039Z"
+    },
+    {
+      "id": "01a0d933-5b0b-7a45-932a-bea17ebcb2f8",
+      "name": "569139000-1790350414574.png (010d35e6-6e8c-47aa-9e9b-a5be10f72b05)",
+      "filename": "569139000-1790350414574.png",
+      "downloadUrl": "https://expo.dev/device-run-sessions/artifacts/TuWcYj0uNquCnW_d8ODzLnyUaAWh3uCqOEZHa1uoj94",
+      "fileSizeBytes": 497545,
+      "createdAt": "2026-09-25T15:33:36.651Z",
+      "updatedAt": "2026-09-25T15:33:49.036Z"
+    },
+    {
+      "id": "01a0d933-33f5-7255-9c5e-29d7bc64b891",
+      "name": "677016000-1790350402684.png (6411a747-901b-4d89-b168-5445ec9aa594)",
+      "filename": "677016000-1790350402684.png",
+      "downloadUrl": "https://expo.dev/device-run-sessions/artifacts/6g_JbjQKPicHTuG-uasVC5XR72dD9wUB86DKN6ajAjo",
+      "fileSizeBytes": 498435,
+      "createdAt": "2026-09-25T15:33:26.645Z",
+      "updatedAt": "2026-09-25T15:33:49.000Z"
+    },
+    {
+      "id": "01a0d932-f94e-7dba-8eb6-66adea8ca8bd",
+      "name": "683747000-1790350390691.png (cb36d9c7-4710-4711-aef4-4ee8401cf5b8)",
+      "filename": "683747000-1790350390691.png",
+      "downloadUrl": "https://expo.dev/device-run-sessions/artifacts/mLyqpcGjmjVu8K5bhMoe8HPVJwUIuDfjYoeTmXURaGw",
+      "fileSizeBytes": 499842,
+      "createdAt": "2026-09-25T15:33:11.630Z",
+      "updatedAt": "2026-09-25T15:33:49.127Z"
+    },
+    {
+      "id": "01a0d931-c0b3-74f2-bd6d-5d30eb4485db",
+      "name": "Session activity",
+      "filename": "events.ndjson",
+      "downloadUrl": "https://expo.dev/device-run-sessions/artifacts/xVW8ZfjfjanFuLDMS1Fx_P4XM1CUM7zH-eglrSmdtv4",
+      "fileSizeBytes": 14306,
+      "metadata": {
+        "__eas_type": "session-events"
+      },
+      "createdAt": "2026-09-25T15:31:51.603Z",
+      "updatedAt": "2026-09-25T15:33:48.876Z"
+    }
+  ]
+}

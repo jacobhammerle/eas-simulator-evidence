@@ -1,0 +1,93 @@
+# Evidence for every pull request, as a GitHub Actions workflow.
+#
+# Copy to .github/workflows/pr-evidence.yml. The runner never needs macOS:
+# the simulator runs on EAS, the runner only sends commands. The site is
+# published to GitHub Pages here; see the comments for EAS Hosting or a
+# plain artifact instead.
+#
+# Secrets:
+#   EXPO_TOKEN   a personal access token with EAS Simulator access
+# Inputs you provide:
+#   BUILD_ID     an EAS simulator build id for the PR's code. Get one from
+#                `eas build --json`, from `eas build:list`, or from an EAS
+#                Workflow that runs first. The step below reads it from a
+#                repository variable to keep the example short.
+name: PR evidence
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+  pages: write
+  id-token: write
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      BUILD_ID: ${{ vars.EAS_SIMULATOR_BUILD_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Start a cloud simulator with the build installed
+        run: |
+          mkdir -p evidence
+          npx --yes eas-cli@latest simulator:start --platform ios --type agent-device \
+            --build-id "$BUILD_ID" --max-duration-minutes 20 --non-interactive \
+            --name "PR #${{ github.event.pull_request.number }} evidence"
+
+      # Replace this step with your agent, Maestro flow, or script. It only
+      # has to save screenshots into evidence/ in capture order and write a
+      # verdict line to verdict.txt.
+      - name: Drive the app
+        run: |
+          ad() { npx --yes eas-cli@latest simulator:exec npx agent-device@latest "$@" --platform ios; }
+          ad screenshot evidence/1-home.png
+          echo "PASS: the app launched and rendered its home screen" > verdict.txt
+
+      - name: Stop the simulator
+        if: always()
+        run: npx --yes eas-cli@latest simulator:stop --non-interactive || true
+
+      - name: Collect the session data and build the site
+        run: |
+          npx --yes eas-simulator-evidence@latest run evidence \
+            --subject "PR #${{ github.event.pull_request.number }}" \
+            --verdict-file verdict.txt --build-id "$BUILD_ID" --agent "agent-device"
+
+      # Option A: GitHub Pages (one site per run; see the deploy-pages docs
+      # for per-PR paths).
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: evidence/site
+      - id: pages
+        uses: actions/deploy-pages@v4
+
+      # Option B: EAS Hosting at a stable per-PR alias. Replace A with:
+      #   URL=$(npx --yes eas-simulator-evidence@latest deploy evidence \
+      #           --alias "pr-${{ github.event.pull_request.number }}-evidence")
+      #
+      # Option C: no hosting, keep the folder as a run artifact:
+      #   - uses: actions/upload-artifact@v4
+      #     with: { name: evidence-site, path: evidence/site }
+
+      - name: Comment on the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.pages.outputs.page_url }}
+        run: |
+          VERDICT=$(npx --yes eas-simulator-evidence@latest verdict "$(head -n 1 verdict.txt)" --badge)
+          THUMBS=$(npx --yes eas-simulator-evidence@latest thumbs evidence "$URL")
+          gh pr comment "${{ github.event.pull_request.number }}" --body "## 🤖 Simulator evidence
+
+          **Verdict:** $VERDICT
+
+          🖼️ **Evidence** — $URL
+
+          $THUMBS"
