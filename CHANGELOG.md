@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-28
+
+### Changed
+
+- README: written the way I would say it. The status list spells out all six verdicts. One desktop capture and one phone view. The examples section is gone.
+
 ## [0.2.0] - 2026-09-28
 
 ### Added
@@ -55,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `comment`, `index`, and `sweep` commands, `--junit` and `--url` on `build` and `run`.
 - A skill file for AI agents at `skills/eas-simulator-evidence/SKILL.md`.
 
-[Unreleased]: https://github.com/jacobhammerle/eas-simulator-evidence/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jacobhammerle/eas-simulator-evidence/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/jacobhammerle/eas-simulator-evidence/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/jacobhammerle/eas-simulator-evidence/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jacobhammerle/eas-simulator-evidence/releases/tag/v0.1.0
