@@ -1,8 +1,8 @@
 <h1 align="center">eas-simulator-evidence</h1>
 
 <p align="center">
-  Turn an <a href="https://docs.expo.dev/eas/simulator/">EAS Simulator</a> run into a shareable evidence site.<br>
-  The verdict, the screenshots, every device command, and the performance charts. One static page.
+  Turn an <a href="https://docs.expo.dev/eas/simulator/">EAS Simulator</a> session into a shareable evidence site.<br>
+  One static page with the verdict, screenshots, every device command, and the performance charts to help you easily consume what happened.
 </p>
 
 <p align="center">
@@ -51,13 +51,6 @@ The page is one `index.html` plus its assets. Nothing loads from a CDN, it opens
   <img src="docs/screenshot-phone.png" alt="The same page on a phone" width="300">
 </p>
 
-A failing run flags the screenshot the verdict names. A replicated issue gets an amber pill: the run worked, the bug is real.
-
-<p align="center">
-  <img src="docs/screenshot-fail.png" alt="A FAIL verdict: red pill, and the second screenshot tagged FAILED" width="400">
-  <img src="docs/screenshot-replicated.png" alt="A REPLICATED verdict: amber pill, and the screenshot that shows the bug tagged" width="400">
-</p>
-
 ## How it works
 
 Your run gives the tool three things: a folder of screenshots in capture order (`1-home.png`, `2-settings.png`, ...), a subject such as `PR #12`, and a verdict line such as `PASS: the checkout flow completed`. Everything else comes from the session.
@@ -80,61 +73,6 @@ npx eas-simulator-evidence@latest comment evidence "$URL" --verdict-file verdict
 ```
 
 Step 2 is yours: an AI agent, a Maestro flow, Appium, or a shell script. If the run never saved a file, `run --screenshots` downloads the session's own captures. Add `--fail-on fail` and the command exits 3 on a FAIL verdict, after the site is up, so the CI job goes red on its own.
-
-## Small examples
-
-**Already have screenshots?** Build a page from them. No session, no account.
-
-```sh
-npx eas-simulator-evidence@latest build evidence --subject "Nightly · iOS" --verdict "PASS: all 3 screens rendered"
-# PASS: all 3 screens rendered
-# Evidence site: /home/me/app/evidence/site
-npx eas-simulator-evidence@latest open evidence
-```
-
-**Let the verdict fail the job.** No wrapper script, no grep.
-
-```sh
-npx eas-simulator-evidence@latest run evidence --stop --subject "PR #12" --verdict-file verdict.txt --fail-on fail
-# exit 3 on a FAIL, after the site is built and deployed
-```
-
-**Read the result from a script.** `--json` prints one object.
-
-```sh
-npx eas-simulator-evidence@latest build evidence --subject "PR #12" --verdict-file verdict.txt --json
-# {"siteDir":"/home/me/app/evidence/site","images":3,"videos":0,"session":"01a0e86c-…","kind":"pass",
-#  "verdict":"PASS: …","report":412,"url":"","durationMs":285021,"manifest":"/home/me/app/evidence/site/evidence.json"}
-```
-
-**Agents write messy verdicts.** Every reader normalizes them the same way, so the page, the comment, and the exit code always agree.
-
-```sh
-npx eas-simulator-evidence@latest verdict "PASS: FAIL: the count stuck at 2"
-# FAIL: the count stuck at 2
-npx eas-simulator-evidence@latest verdict "looks fine to me"
-# FAIL: malformed verdict line: looks fine to me
-```
-
-**The report lives in the same file.** Line 1 is the verdict. The rest is Markdown, rendered on the page.
-
-```txt
-PASS: completing a task updates progress and persists across tabs
-Checked on iPhone 17 against the preview build.
-
-- Toggling "Upload ID documents" moved the counter from 2 of 9 to 3 of 9.
-- Home showed the same 3 of 9 after a tab change.
-```
-
-**From Node.** The CLI is a thin layer over three functions.
-
-```js
-import { collectSession, buildSite, deploySite } from "eas-simulator-evidence";
-
-await collectSession({ dir: "evidence", stop: true });
-const { siteDir, kind } = buildSite({ dir: "evidence", subject: "PR #12", verdict: "PASS: the home screen rendered" });
-const { url } = deploySite({ siteDir, alias: "pr-12-evidence" });
-```
 
 ## In CI
 
