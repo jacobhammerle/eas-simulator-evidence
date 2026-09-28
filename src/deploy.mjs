@@ -8,6 +8,7 @@
 // for the site; this helper is only a convenience for EAS Hosting.
 import { execFileSync } from "node:child_process";
 import { relative, resolve } from "node:path";
+import { DEFAULT_EAS_CLI_VERSION } from "./config.mjs";
 
 export function parseDeployOutput(raw) {
   const s = String(raw ?? "");
@@ -24,7 +25,7 @@ export function deploySite({
   siteDir,
   alias,
   projectDir = process.cwd(),
-  easCliVersion = process.env.EAS_CLI_VERSION || "latest",
+  easCliVersion = process.env.EAS_CLI_VERSION || DEFAULT_EAS_CLI_VERSION,
   log = console,
   // Injection point for tests: (file, args, options) -> stdout.
   exec = execFileSync,

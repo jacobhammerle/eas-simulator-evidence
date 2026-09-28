@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import { parseArgs, pairsToObject } from "../src/args.mjs";
 import { buildSite } from "../src/build.mjs";
 import { collectSession } from "../src/collect.mjs";
-import { resolveProject } from "../src/config.mjs";
+import { DEFAULT_EAS_CLI_VERSION, resolveProject } from "../src/config.mjs";
 import { deploySite } from "../src/deploy.mjs";
 import { initRecipe, TARGETS } from "../src/init.mjs";
 import { commentMarkdown } from "../src/comment.mjs";
@@ -72,7 +72,7 @@ collect  Pull the session's own artifacts (events, metrics, recording link)
   --dotenv <path>       Dotenv to read the session id from. Default: .env.eas-simulator
   --extra k=v           Extra fact stored in session.json (repeatable)
   --wait <seconds>      Max wait for the artifacts to finalize. Default: 180
-  --eas-cli-version <v> eas-cli version for npx. Default: EAS_CLI_VERSION or latest
+  --eas-cli-version <v> eas-cli version for npx. Default: EAS_CLI_VERSION or ${DEFAULT_EAS_CLI_VERSION}
   --screenshots         Download the session's own screenshots into <dir> when it has none
   --json                Print a JSON summary to stdout
 

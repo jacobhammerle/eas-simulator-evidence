@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { thumbsHtml, listScreenshots, caption } from "../src/thumbs.mjs";
-import { resolveProject, readAppJson } from "../src/config.mjs";
+import { resolveProject, readAppJson, DEFAULT_EAS_CLI_VERSION } from "../src/config.mjs";
 import { deploySite, parseDeployOutput } from "../src/deploy.mjs";
 import { fixture, fresh, quiet, makeEvidence, cleanOut } from "./helpers.mjs";
 
@@ -112,6 +112,22 @@ test("deploySite passes a relative export dir and the alias to eas-cli", () => {
   assert.equal(call.file, "npx");
   assert.deepEqual(call.args, ["--yes", "eas-cli@24.0.0", "deploy", "--export-dir", join("evidence", "site"), "--non-interactive", "--json", "--alias", "pr-1-evidence"]);
   assert.equal(call.options.cwd, projectDir);
+});
+
+test("the default eas-cli version is a pinned release, not a dist-tag", () => {
+  assert.match(DEFAULT_EAS_CLI_VERSION, /^\d+\.\d+\.\d+$/);
+  const saved = process.env.EAS_CLI_VERSION;
+  delete process.env.EAS_CLI_VERSION;
+  try {
+    const projectDir = fresh("proj-pin");
+    const siteDir = join(projectDir, "site");
+    mkdirSync(siteDir, { recursive: true });
+    let args;
+    deploySite({ siteDir, projectDir, log: quiet, exec: (_f, a) => { args = a; return '{"url":"https://u"}'; } });
+    assert.equal(args[1], `eas-cli@${DEFAULT_EAS_CLI_VERSION}`);
+  } finally {
+    if (saved !== undefined) process.env.EAS_CLI_VERSION = saved;
+  }
 });
 
 test("deploySite without an alias, and with a site outside the project dir", () => {

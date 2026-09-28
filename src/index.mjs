@@ -18,7 +18,7 @@ export { junitXml } from "./junit.mjs";
 export { buildIndex, readRuns } from "./index-page.mjs";
 export { sweepSessions, listLiveSessions, PREVIEW_SUFFIX } from "./sweep.mjs";
 export { thumbsHtml, listScreenshots, caption } from "./thumbs.mjs";
-export { resolveProject, readAppJson } from "./config.mjs";
+export { resolveProject, readAppJson, DEFAULT_EAS_CLI_VERSION } from "./config.mjs";
 export {
   KEYWORDS,
   normalizeVerdict,

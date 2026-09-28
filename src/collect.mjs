@@ -30,6 +30,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { DEFAULT_EAS_CLI_VERSION } from "./config.mjs";
 
 export const SCHEMA_VERSION = 1;
 
@@ -49,7 +50,7 @@ export function parseCliJson(raw) {
   return JSON.parse(s.slice(start));
 }
 
-export function runEasSimulatorStop(sessionId, easCliVersion = "latest") {
+export function runEasSimulatorStop(sessionId, easCliVersion = DEFAULT_EAS_CLI_VERSION) {
   execFileSync(
     "npx",
     ["--yes", `eas-cli@${easCliVersion}`, "simulator:stop", "--id", sessionId, "--non-interactive"],
@@ -57,7 +58,7 @@ export function runEasSimulatorStop(sessionId, easCliVersion = "latest") {
   );
 }
 
-export function runEasSimulatorGet(sessionId, easCliVersion = "latest") {
+export function runEasSimulatorGet(sessionId, easCliVersion = DEFAULT_EAS_CLI_VERSION) {
   const raw = execFileSync(
     "npx",
     [
@@ -389,7 +390,7 @@ export async function collectSession({
   sessionId: sessionIdOpt,
   envFile = ".env.eas-simulator",
   extra = {},
-  easCliVersion = process.env.EAS_CLI_VERSION || "latest",
+  easCliVersion = process.env.EAS_CLI_VERSION || DEFAULT_EAS_CLI_VERSION,
   maxWaitMs = 180_000,
   pollMs = 10_000,
   // Download the platform's own screenshots into the evidence dir when it

@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.1] - 2026-09-25
+## [0.1.1] - 2026-09-28
 
 ### Added
 
 - `--stop` on `collect` and `run`, and a `stop` input on the Action: the tool stops the session itself before collecting.
 - A "Driving the app so the evidence is right" section in the skill file, from the first real runs: open the app before the first screenshot, re-read the tree before every tap, verify screens from the tree, wait after taps, stop through the tool.
+
+### Changed
+
+- The tool now runs a pinned eas-cli release (`24.8.0`) through `npx` instead of `latest`, so a new eas-cli release cannot change the JSON the tool parses without a release here. `--eas-cli-version` and `EAS_CLI_VERSION` still override it. The constant is exported as `DEFAULT_EAS_CLI_VERSION`.
 
 ### Fixed
 

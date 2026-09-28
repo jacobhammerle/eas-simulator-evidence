@@ -17,7 +17,7 @@ It never fails your pipeline. Without a session id or with a session it cannot r
 | `--dotenv <path>` | Dotenv file to read the session id from |
 | `--extra k=v` | Extra fact stored in `session.json`. Repeatable |
 | `--wait <seconds>` | Max wait for the artifacts. Default 180 |
-| `--eas-cli-version <v>` | Version of eas-cli to run through `npx`. Default: `EAS_CLI_VERSION` or `latest` |
+| `--eas-cli-version <v>` | Version of eas-cli to run through `npx`. Default: `EAS_CLI_VERSION`, then the pinned release (`24.8.0`) |
 | `--screenshots` | Download the session's own screenshots into `<dir>` as `1-capture.png`, `2-capture.png`, ... in capture order. Only when `<dir>` holds no images yet |
 | `--json` | Print a JSON summary to stdout |
 

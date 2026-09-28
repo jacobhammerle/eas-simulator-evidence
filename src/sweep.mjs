@@ -9,6 +9,7 @@
 // and are older than the limit, and stops them. It never touches a
 // session with another name, and it never fails the caller.
 import { execFileSync } from "node:child_process";
+import { DEFAULT_EAS_CLI_VERSION } from "./config.mjs";
 import { parseCliJson } from "./collect.mjs";
 
 export const PREVIEW_SUFFIX = "evidence-site preview";
@@ -45,7 +46,7 @@ export async function sweepSessions({
   nameSuffix = PREVIEW_SUFFIX,
   type = "web-preview-only",
   dryRun = false,
-  easCliVersion = process.env.EAS_CLI_VERSION || "latest",
+  easCliVersion = process.env.EAS_CLI_VERSION || DEFAULT_EAS_CLI_VERSION,
   now = () => Date.now(),
   log = console,
   eas = (args) => runEas(args, easCliVersion),
