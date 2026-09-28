@@ -17,11 +17,11 @@
 
 <br>
 
-An agent, a test runner, or a script drives your app on a cloud simulator. This tool takes what the run left behind and builds one page from it. Any app, any CI, any host, any way of driving the device. The only requirement is that the run happened on EAS Simulator.
+I built this because I kept running my app on EAS Simulator, from an agent or a script, and had nothing to show for it afterwards except a folder of screenshots. Now the run ends with one page I can drop into a PR. It doesn't care what drove the device or where you host it. The one thing it needs is that the run happened on EAS Simulator.
 
 ## Try it in one minute
 
-No simulator and no Expo account needed. The repo ships a real run.
+You don't need a simulator or an Expo account for this part. There's a real run checked into the repo.
 
 ```sh
 git clone https://github.com/jacobhammerle/eas-simulator-evidence
@@ -31,21 +31,21 @@ npm run demo
 
 ## What you get
 
-- **A verdict** as a status pill and a headline. Six statuses:
-  - `PASS`: the run met its pass condition. Green.
-  - `FAIL`: it did not. Red, and the screenshot the verdict names is tagged.
-  - `REPLICATED`: the reported bug happened. Amber, because the run itself worked.
-  - `CONFIRMED`: the same as replicated, under the name some agents use. Amber.
-  - `NOT-REPLICATED`: the reported bug did not happen. Green.
-  - `INCONCLUSIVE`: no clear result. Grey.
-- **Screenshots** in capture order, with a full-screen viewer and a ring where the agent tapped.
-- **What the agent did.** Every tap, swipe, and screen read, with timing, from the session itself. A tap links to the screenshot it produced. A time plays the recording from that moment.
-- **App performance.** CPU, memory, and network for the whole run, with the taps and the app launch marked. Hover for the value at any moment and the step that caused it.
-- **The agent's report**, rendered from its Markdown. A screenshot it names opens in the viewer.
-- **"Try this build"**, a button that opens the same build in a fresh simulator session on expo.dev.
-- **The full screen recording**, embedded, with nothing downloaded until you press play. Plus the raw data.
+- **The verdict** up top, as a pill and a headline. There are six:
+  - `PASS`: it did what it was supposed to. Green.
+  - `FAIL`: it didn't. Red, and the screenshot the verdict points at gets tagged.
+  - `REPLICATED`: the bug you were chasing showed up. Amber, since the run itself was fine.
+  - `CONFIRMED`: same thing as replicated, some agents just phrase it that way. Amber.
+  - `NOT-REPLICATED`: the bug didn't show up. Green.
+  - `INCONCLUSIVE`: couldn't tell. Grey.
+- **Screenshots** in the order they were taken, with a full-screen viewer and a ring where the tap landed.
+- **What actually happened on the device.** Every tap, swipe, and screen read, with timing, straight from the session. A tap links to the screenshot it caused, and clicking a time plays the recording from right there.
+- **Performance.** CPU, memory, and network for the whole run, with the taps and the app launch marked. Hover to see the numbers and what was going on at that second.
+- **The report** the agent wrote, rendered from Markdown. If it names a screenshot, that one opens in the viewer.
+- **A "Try this build" button** that spins up the same build in a fresh simulator session on expo.dev.
+- **The screen recording**, right on the page. It doesn't download a thing until you hit play. The raw data is down there too.
 
-The page is one `index.html` plus its assets. Nothing loads from a CDN, it opens from `file://`, and it looks right on a phone, in light and dark, with three screenshots or fifty. Paste the link in Slack or a pull request and the preview shows the verdict and the first screenshot.
+It's one `index.html` and its assets. Nothing comes from a CDN, it opens straight from `file://`, and it holds up on a phone, in light or dark, whether you've got three screenshots or fifty. Paste the link in Slack or a PR and the preview shows the verdict and the first screenshot.
 
 <p align="center">
   <img src="docs/screenshot-phone.png" alt="The same page on a phone" width="300">
@@ -53,7 +53,7 @@ The page is one `index.html` plus its assets. Nothing loads from a CDN, it opens
 
 ## How it works
 
-Your run gives the tool three things: a folder of screenshots in capture order (`1-home.png`, `2-settings.png`, ...), a subject such as `PR #12`, and a verdict line such as `PASS: the checkout flow completed`. Everything else comes from the session.
+You give it three things: a folder of screenshots in the order you took them (`1-home.png`, `2-settings.png`, and so on), a subject like `PR #12`, and a verdict line like `PASS: the checkout flow completed`. It pulls the rest out of the session.
 
 ```sh
 # 1. Start a cloud simulator with your build installed
@@ -72,11 +72,11 @@ npx eas-simulator-evidence@latest run evidence --stop --subject "PR #12" \
 npx eas-simulator-evidence@latest comment evidence "$URL" --verdict-file verdict.txt | gh pr comment 12 --body-file -
 ```
 
-Step 2 is yours: an AI agent, a Maestro flow, Appium, or a shell script. If the run never saved a file, `run --screenshots` downloads the session's own captures. Add `--fail-on fail` and the command exits 3 on a FAIL verdict, after the site is up, so the CI job goes red on its own.
+Step 2 is up to you. I use an agent, but a Maestro flow, Appium, or a plain shell script all work. If nothing saved a screenshot, `run --screenshots` grabs the session's own captures. Add `--fail-on fail` and the command exits 3 on a FAIL, after the site is up, so your CI job goes red without any extra scripting.
 
 ## In CI
 
-One command drops a ready-made workflow into your project:
+I got tired of writing the same workflow over and over, so `init` drops one into your project:
 
 ```sh
 npx eas-simulator-evidence@latest init github-actions   # or: eas-workflows, gitlab-ci, local
@@ -89,7 +89,7 @@ npx eas-simulator-evidence@latest init github-actions   # or: eas-workflows, git
 | [gitlab-ci.yml](recipes/gitlab-ci.yml) | Evidence on every merge request, kept as a job artifact or on GitLab Pages |
 | [local.sh](recipes/local.sh) | The whole loop on your machine |
 
-On GitHub, the tool is also an Action. After your run has saved its screenshots:
+It's also a GitHub Action. Once your run has saved its screenshots:
 
 ```yaml
 - uses: jacobhammerle/eas-simulator-evidence@v0
@@ -104,11 +104,11 @@ On GitHub, the tool is also an Action. After your run has saved its screenshots:
     EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 ```
 
-Outputs: `url`, `site-dir`, `kind`, and `verdict`. Leave out `deploy-alias` and upload `site-dir` wherever you host.
+You get `url`, `site-dir`, `kind`, and `verdict` back as outputs. Skip `deploy-alias` and upload `site-dir` wherever you like.
 
 ## Host it anywhere
 
-The site is a folder of static files with relative paths. Put `evidence/site/` wherever you keep such things:
+It's just a folder of static files with relative paths, so `evidence/site/` can go pretty much anywhere:
 
 | Host | How |
 | --- | --- |
@@ -119,7 +119,7 @@ The site is a folder of static files with relative paths. Put `evidence/site/` w
 | Netlify, Vercel, Cloudflare Pages | Point the deploy at `evidence/site` |
 | No host | Upload the folder as a CI artifact |
 
-Pass `--url` with the page's final address so link previews show the first screenshot; with `--deploy-alias` the tool knows it already. To keep many runs on one host, give each its own folder and build a landing page with `index`.
+If you know the final URL, pass `--url` so link previews pick up the first screenshot. With `--deploy-alias` it already knows. Keeping a bunch of runs on one host? Give each its own folder and run `index` to get a landing page over all of them.
 
 ## Commands
 
@@ -137,20 +137,20 @@ eas-simulator-evidence sweep   [--older-than 30]                               s
 eas-simulator-evidence init    <target>                                        copy a CI recipe into the project
 ```
 
-Run any command with `--help`. The full reference, the verdict grammar, the session data schema, and the programmatic API are in [docs/reference.md](docs/reference.md).
+Every command has `--help`. The full reference, the verdict grammar, the session data schema, and the programmatic API are all in [docs/reference.md](docs/reference.md).
 
 ## Requirements
 
-- Node 20 or newer. Run it with `npx eas-simulator-evidence@<version>`, or install it as a devDependency. In a multi-job pipeline, every job that runs the tool needs its install step.
-- An Expo account with EAS Simulator access for `collect`, `deploy`, and `sweep`. In CI, set `EXPO_TOKEN` to a personal access token. Nothing else in the tool talks to the network.
+- Node 20 or newer. Run it with `npx eas-simulator-evidence@<version>` or add it as a devDependency. If your pipeline has more than one job, each job that runs the tool needs its own install step.
+- An Expo account with EAS Simulator access, for `collect`, `deploy`, and `sweep`. In CI, set `EXPO_TOKEN` to a personal access token. Nothing else in here touches the network.
 
 ## Using it from an agent
 
-Point Claude Code, Cursor, or any agent that reads skills at [skills/eas-simulator-evidence/SKILL.md](skills/eas-simulator-evidence/SKILL.md). It covers naming screenshots, writing the verdict line, and running the tool.
+If you're on Claude Code, Cursor, or anything else that reads skills, point it at [skills/eas-simulator-evidence/SKILL.md](skills/eas-simulator-evidence/SKILL.md). It covers how to name screenshots, how to write the verdict line, and how to run the tool.
 
 ## Contributing
 
-Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [changelog](CHANGELOG.md).
+Issues and PRs are welcome. Have a look at [CONTRIBUTING.md](CONTRIBUTING.md) and the [changelog](CHANGELOG.md) first.
 
 ## License
 
