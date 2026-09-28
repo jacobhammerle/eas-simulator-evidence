@@ -34,6 +34,13 @@ Layout:
 | `recipes/` | CI examples. `init` copies them. |
 | `test/` | Node's built-in test runner. |
 
+## Agents
+
+If you are pointing an AI agent at this repo, [AGENTS.md](AGENTS.md) is the
+short version of this file for that purpose. The skill file at
+`skills/eas-simulator-evidence/SKILL.md` is for agents *using* the tool on a
+run, not changing it.
+
 ## Pull requests
 
 - Add or update a test for what you change. The renderer tests build the fixture and check the markup; the collector tests replay raw artifacts; the CLI tests run the binary.
