@@ -1,4 +1,4 @@
-# Publishes to npm on a v* tag, with provenance, through npm trusted
+# Publishes to npm on a version tag, with provenance, through npm trusted
 # publishing (no token to store). One-time setup on npmjs.com: package →
 # Settings → Trusted publisher → GitHub Actions, this repository, this
 # workflow file name.
@@ -6,7 +6,11 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    # Full version tags only. The floating major tag (v0), which points
+    # the GitHub Action at the current release, must not start a publish.
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
 
 permissions:
   contents: write
