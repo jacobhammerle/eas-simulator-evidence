@@ -67,6 +67,9 @@ test("builds the full page from the real fixture", () => {
     "colors_and_type.css",
     "fonts/Inter-Variable.woff2",
     "fonts/JetBrainsMono-Variable.woff2",
+    "favicon.svg",
+    "favicon.png",
+    "apple-touch-icon.png",
     "session/session.json",
     "session/events.ndjson",
     "session/metrics.ndjson",
@@ -79,7 +82,7 @@ test("builds the full page from the real fixture", () => {
 
 test("the screenshot tiles carry the image's own aspect ratio", () => {
   const { h } = full();
-  assert.equal((h.match(/style="aspect-ratio: 1206 \/ 2622"/g) || []).length, 3);
+  assert.equal((h.match(/class="shot-frame" style="aspect-ratio: 1206 \/ 2622"/g) || []).length, 3);
   assert.doesNotMatch(h, /class="shot wide"/);
 });
 
@@ -212,6 +215,15 @@ test("a missing evidence dir throws", () => {
   assert.throws(() => buildSite({ subject: "x", verdict: "PASS: x", log: quiet }), /evidence dir not found/);
 });
 
+test("an Android session gets no Try this build button (create-session links are iOS only)", () => {
+  const s = readFixtureSession();
+  s.platform = "ANDROID";
+  const dir = makeEvidence({ images: ["1-a.png"], session: s });
+  const out = fresh("android-launch");
+  buildSite({ dir, subject: "x", verdict: "PASS: x", out, log: quiet, expoOwner: "o", expoSlug: "s", buildId: "0123456789abcdef0123456789abcdef" });
+  assert.doesNotMatch(html(out), /Try this build/);
+});
+
 test("the Try this build button needs an owner, a slug, and a real-looking build id", () => {
   const cases = [
     [{ expoOwner: "a", expoSlug: "b" }, false],
@@ -267,7 +279,7 @@ test("Android sessions say emulator", () => {
   assert.match(html(out), /EAS cloud emulator/);
 });
 
-test("the agent report renders as text, short ones open, long ones folded", () => {
+test("the agent report renders as Markdown, short ones open, long ones folded", () => {
   const dir = makeEvidence({ images: ["1-a.png"] });
   const out = fresh("report");
   const short = "Line one.\nLine two with <b>html</b> & stuff.";
@@ -276,15 +288,25 @@ test("the agent report renders as text, short ones open, long ones folded", () =
   let h = html(out);
   assert.match(h, /<section id="report">/);
   assert.match(h, /Agent report<\/h2><span class="count">2 lines<\/span>/);
-  assert.match(h, /<pre class="report">Line one\.\nLine two with &lt;b&gt;html&lt;\/b&gt; &amp; stuff\.<\/pre>/);
+  assert.match(h, /<div class="report" id="report-body"><p>Line one\.<br>Line two with &lt;b&gt;html&lt;\/b&gt; &amp; stuff\.<\/p><\/div>/);
   assert.match(h, /class="card report-card" id="report-card"/);
+  assert.doesNotMatch(h, /id="report-toggle"/);
   assert.match(h, /<a href="#report">Report<\/a>/);
+
+  buildSite({ dir, subject: "x", verdict: "PASS: x", report: "## Step 1\n\n- checked `describe`\n- **bold**", out, log: quiet });
+  h = html(out);
+  assert.match(h, /<h3>Step 1<\/h3>\n<ul><li>checked <code>describe<\/code><\/li><li><strong>bold<\/strong><\/li><\/ul>/);
+
+  // A screenshot named in the report opens the viewer; an unknown name stays text.
+  buildSite({ dir, subject: "x", verdict: "PASS: x", report: "See `1-a.png` and 1-a.png, not 9-z.png.", out, log: quiet });
+  h = html(out);
+  assert.match(h, /See <a href="#shot-1" class="rp-shot" data-index="0"><code>1-a\.png<\/code><\/a> and <a href="#shot-1" class="rp-shot" data-index="0">1-a\.png<\/a>, not 9-z\.png\./);
 
   const long = Array.from({ length: 40 }, (_, i) => `Step ${i + 1}: something happened.`).join("\n");
   buildSite({ dir, subject: "x", verdict: "PASS: x", report: long, out, log: quiet });
   h = html(out);
   assert.match(h, /class="card report-card report-collapsed"/);
-  assert.match(h, /id="report-more"/);
+  assert.match(h, /id="report-toggle" aria-expanded="false" aria-controls="report-body"/);
   assert.match(h, /40 lines/);
 
   buildSite({ dir, subject: "x", verdict: "PASS: x", report: "   \n  ", out, log: quiet });
@@ -448,4 +470,94 @@ test("no icon referenced by any page is missing from assets", () => {
     buildSite({ dir, subject: "x", verdict, out: fresh("icons"), log: rec, report: "r", expoOwner: "o", expoSlug: "s", buildId: "0123456789abcdef0123456789abcdef" });
   }
   assert.deepEqual(rec.warns, []);
+});
+
+test("tap rings: agent-device points map onto the image, with and without a scale flag", () => {
+  const base = readFixtureSession();
+  const tl = [
+    { ts: "2026-09-25T15:31:10Z", kind: "tap", tool: "press", label: "Tapped @e1", outcome: "success", x: 45, y: 156, xyUnit: "pt" },
+    { ts: "2026-09-25T15:31:12Z", kind: "screenshot", tool: "screenshot", label: "Captured screenshot a.png", outcome: "success", screenshotIndex: 0 },
+    { ts: "2026-09-25T15:31:14Z", kind: "tap", tool: "press", label: "Tapped @e2", outcome: "success", x: 45, y: 156, xyUnit: "pt" },
+    { ts: "2026-09-25T15:31:16Z", kind: "screenshot", tool: "screenshot", label: "Captured screenshot b.png", outcome: "success", screenshotIndex: 1, scale: 2 },
+    { ts: "2026-09-25T15:31:18Z", kind: "tap", tool: "press", label: "Tapped @e3", outcome: "success", x: 500, y: 10, xyUnit: "pt" },
+    { ts: "2026-09-25T15:31:20Z", kind: "screenshot", tool: "screenshot", label: "Captured screenshot c.png", outcome: "success", screenshotIndex: 2 },
+  ];
+  const dir = makeEvidence({
+    images: [{ name: "1-a.png", w: 90, h: 195 }, { name: "2-b.png", w: 180, h: 390 }, { name: "3-c.png", w: 90, h: 195 }],
+    session: { ...base, timeline: tl },
+  });
+  const out = fresh("ptring");
+  buildSite({ dir, subject: "x", verdict: "PASS: x", out, log: quiet });
+  const h = html(out);
+  const ring = (n, label) => new RegExp(`aria-label="Screenshot ${n}: ${label}">\\s*<span class="shot-frame"[^>]*><img[^>]+><span class="tap-mark" style="left:50\\.0%;top:80\\.0%"`);
+  assert.match(h, ring(1, "A"), "45 of 90 px and 156 of 195 px at 1x");
+  assert.match(h, ring(2, "B"), "a 2x capture: 45 pt × 2 of 180 px");
+  assert.doesNotMatch(h, /aria-label="Screenshot 3: C">\s*<span class="shot-frame"[^>]*><img[^>]+><span class="tap-mark"/, "a tap outside the image gets no ring");
+});
+
+test("the hero offers the recording, and timeline times open it at that moment", () => {
+  const { h } = full();
+  assert.match(h, /title="The platform's screen recording of the whole session">[\s\S]*?Watch the run/);
+  const jumps = h.match(/class="tl-time tl-jump" href="#recording" data-t="\d+\.\d"/g) || [];
+  assert.ok(jumps.length >= 5, `time links: ${jumps.length}`);
+  assert.match(h, /Click a time to play the recording from that moment\./);
+  assert.match(h, /<div class="rec-grid" id="platform-rec">\s*<div class="rec-frame"[^>]*><video controls playsinline preload="none" src="https:\/\/[^"]+"><\/video>/);
+  assert.match(h, /<a href="#recording">Recording<\/a>/);
+  assert.match(h, /Download recording\.mp4/);
+});
+
+test("no recording: no watch button and no time links", () => {
+  const s = readFixtureSession();
+  const dir = makeEvidence({ images: ["1-a.png", "2-b.png"], session: { ...s, recording: null } });
+  const out = fresh("norec");
+  buildSite({ dir, subject: "x", verdict: "PASS: x", out, log: quiet });
+  const h = html(out);
+  assert.doesNotMatch(h, /Watch the run/);
+  assert.doesNotMatch(h, /class="tl-time tl-jump"/);
+  assert.doesNotMatch(h, /data-t="/);
+  assert.doesNotMatch(h, /id="platform-rec"/);
+});
+
+test("an input step links to the screenshot that followed it, up to the next input", () => {
+  const s = readFixtureSession();
+  const tl = [
+    { ts: "2026-09-25T15:31:10Z", kind: "tap", tool: "press", label: "Tapped @e1", outcome: "success" },
+    { ts: "2026-09-25T15:31:11Z", kind: "describe", tool: "snapshot", label: "Ran snapshot", outcome: "success" },
+    { ts: "2026-09-25T15:31:12Z", kind: "screenshot", tool: "screenshot", label: "Captured screenshot a.png", outcome: "success", screenshotIndex: 0 },
+    { ts: "2026-09-25T15:31:13Z", kind: "tap", tool: "press", label: "Tapped @e2", outcome: "success" },
+    { ts: "2026-09-25T15:31:14Z", kind: "tap", tool: "press", label: "Tapped @e3", outcome: "success" },
+    { ts: "2026-09-25T15:31:15Z", kind: "screenshot", tool: "screenshot", label: "Captured screenshot b.png", outcome: "success", screenshotIndex: 1 },
+    { ts: "2026-09-25T15:31:16Z", kind: "tap", tool: "press", label: "Tapped @e4", outcome: "success" },
+  ];
+  const dir = makeEvidence({ images: ["1-a.png", "2-b.png"], session: { ...s, timeline: tl } });
+  const out = fresh("next");
+  buildSite({ dir, subject: "x", verdict: "PASS: x", out, log: quiet });
+  const h = html(out);
+  const nexts = h.match(/class="tl-view tl-next" data-index="(\d+)"/g) || [];
+  assert.deepEqual(nexts, ['class="tl-view tl-next" data-index="0"', 'class="tl-view tl-next" data-index="1"']);
+  assert.match(h, /Then screenshot 1</);
+  assert.equal((h.match(/class="tl-view"/g) || []).length, 2, "screenshot rows keep their own View link");
+});
+
+test("charts carry a hover layer, the data behind it, and a launch hairline", () => {
+  const { h } = full();
+  const charts = (h.match(/class="chart" data-series="/g) || []).length;
+  assert.ok(charts >= 2, `charts: ${charts}`);
+  assert.equal((h.match(/<div class="ch-tip" hidden>/g) || []).length, charts);
+  assert.match(h, /var perf = \{"maxT":\d+(\.\d+)?,"cpu":\[\[/);
+  assert.match(h, /"steps":\[\{"t":-?\d+(\.\d+)?,"label":"/);
+  assert.match(h, /class="hair-launch"/);
+  assert.match(h, /The solid one marks the app launch\./);
+  assert.match(h, /Hover or touch a chart/);
+});
+
+test("a step label cannot break out of the hover data script", () => {
+  const s = readFixtureSession();
+  const tl = [{ ts: s.timeline[0].ts, kind: "tap", tool: "press", label: "</script><b>x</b>", outcome: "success" }];
+  const dir = makeEvidence({ images: ["1-a.png"], session: { ...s, timeline: tl } });
+  const out = fresh("esc");
+  buildSite({ dir, subject: "x", verdict: "PASS: x", out, log: quiet });
+  const h = html(out);
+  assert.doesNotMatch(h, /"label":"<\/script>/);
+  assert.match(h, /"label":"\\u003c\/script>/);
 });

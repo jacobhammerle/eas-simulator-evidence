@@ -51,6 +51,15 @@ inputs:
   deploy-alias:
     description: Deploy the site to EAS Hosting under this alias. Needs EXPO_TOKEN in the environment.
     required: false
+  url:
+    description: Where the site will be hosted, when you host it elsewhere (GitHub Pages, S3, ...). Enables link previews and the canonical link.
+    required: false
+  junit:
+    description: Also write a JUnit XML file with one test case for the run, at this path.
+    required: false
+  fail-on:
+    description: 'Fail the step when the verdict is "fail" (FAIL) or "not-pass" (anything but PASS / NOT-REPLICATED). The site is built and deployed first.'
+    required: false
   working-directory:
     description: The Expo project root, where app.json lives.
     required: false
@@ -91,6 +100,9 @@ runs:
         IN_OWNER: ${{ inputs.owner }}
         IN_SLUG: ${{ inputs.slug }}
         IN_DEPLOY_ALIAS: ${{ inputs.deploy-alias }}
+        IN_URL: ${{ inputs.url }}
+        IN_JUNIT: ${{ inputs.junit }}
+        IN_FAIL_ON: ${{ inputs.fail-on }}
       run: |
         set -euo pipefail
         # The CLI ships with this action, so the version is the action's tag.
@@ -107,11 +119,19 @@ runs:
         [ -n "$IN_OWNER" ] && args+=(--owner "$IN_OWNER")
         [ -n "$IN_SLUG" ] && args+=(--slug "$IN_SLUG")
         [ -n "$IN_DEPLOY_ALIAS" ] && args+=(--deploy-alias "$IN_DEPLOY_ALIAS")
-        out=$(node "${{ github.action_path }}/bin/eas-simulator-evidence.js" "${args[@]}")
+        [ -n "$IN_URL" ] && args+=(--url "$IN_URL")
+        [ -n "$IN_JUNIT" ] && args+=(--junit "$IN_JUNIT")
+        [ -n "$IN_FAIL_ON" ] && args+=(--fail-on "$IN_FAIL_ON")
+        # With --fail-on the CLI exits 3 after building; the outputs are
+        # still written below before the step fails.
+        code=0
+        out=$(node "${{ github.action_path }}/bin/eas-simulator-evidence.js" "${args[@]}") || code=$?
         echo "$out"
+        [ "$code" -eq 0 ] || [ "$code" -eq 3 ] || exit "$code"
         node -e '
           const r = JSON.parse(process.argv[1]);
           const fs = require("fs");
           const line = (k, v) => fs.appendFileSync(process.env.GITHUB_OUTPUT, `${k}=${String(v ?? "").replace(/\r?\n/g, " ")}\n`);
           line("url", r.url); line("site-dir", r.siteDir); line("kind", r.kind); line("verdict", r.verdict);
         ' "$out"
+        exit "$code"

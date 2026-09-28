@@ -363,3 +363,19 @@ test("collectSession --stop stops the session first, and a failed stop does not 
   await collectSession({ dir: fresh("stop3"), sessionId: "s3", stop: false, pollMs: 1, maxWaitMs: 1, log: quiet, stopSession: async () => { stopped = true; }, getSession: async () => raw(), fetchText: fetchFromFixture, sleep: async () => {} });
   assert.equal(stopped, false, "no --stop, no stop");
 });
+
+test("agent-device: a resolved target label names the tap, and a screenshot's scale flag is kept", () => {
+  const lines = [
+    { ts: "2026-01-01T00:00:01Z", producer: "agent-device", type: "operation.started", operationId: "a", summary: "Started press" },
+    { ts: "2026-01-01T00:00:01.100Z", producer: "agent-device", type: "interaction.recorded", operationId: "a", summary: "press @e2", data: { command: "press", x: 120, y: 640, target: "@e2", targetLabel: " Checklist " } },
+    { ts: "2026-01-01T00:00:01.500Z", producer: "agent-device", type: "operation.completed", operationId: "a", summary: "Tapped @e2", outcome: "success", data: { durationMs: 400 } },
+    { ts: "2026-01-01T00:00:02Z", producer: "agent-device", type: "operation.started", operationId: "b", summary: "Started screenshot" },
+    { ts: "2026-01-01T00:00:02.100Z", producer: "agent-device", type: "interaction.recorded", operationId: "b", summary: "screenshot", data: { command: "screenshot", flags: { platform: "ios", scale: "2" } } },
+    { ts: "2026-01-01T00:00:02.300Z", producer: "agent-device", type: "operation.completed", operationId: "b", summary: "Captured screenshot shot-1.png", outcome: "success", durationMs: 300 },
+  ];
+  const tl = normalizeTimeline(lines.map((l) => JSON.stringify(l)).join("\n"), { anchorIso: "2026-01-01T00:00:00Z" });
+  assert.equal(tl[0].label, 'Tapped "Checklist"');
+  assert.equal(tl[0].target, "@e2");
+  assert.equal(tl[0].targetLabel, "Checklist");
+  assert.equal(tl[1].scale, 2);
+});

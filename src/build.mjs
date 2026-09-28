@@ -49,6 +49,7 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseVerdict } from "./verdict.mjs";
+import { renderMarkdown } from "./markdown.mjs";
 
 const assetsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "assets");
 
@@ -138,6 +139,9 @@ cpSync(
 );
 // Inter and JetBrains Mono, self-hosted: the stylesheet's @font-face rules point at fonts/.
 cpSync(join(assetsDir, "fonts"), join(siteDir, "fonts"), { recursive: true });
+// The tab icon: the Expo mark as an SVG that follows the OS theme, a PNG
+// for browsers that ignore SVG icons, and an Apple touch icon.
+for (const f of ["favicon.svg", "favicon.png", "apple-touch-icon.png"]) cpSync(join(assetsDir, f), join(siteDir, f));
 
 // Session artifacts (optional).
 let session = null;
@@ -275,18 +279,31 @@ const sectionHead = (title, count, hint = "") =>
 const images = files.filter((f) => /\.(png|jpg|jpeg)$/i.test(f));
 const videos = files.filter((f) => /\.(mp4|mov)$/i.test(f));
 
-// The tap that led to each screenshot: the last tap before the capture,
-// when the controller reported it as a fraction of the screen. Points
-// (agent-device) need the device's point size, which the session does
-// not carry, so those get no marker.
+// The tap that led to each screenshot: the last tap before the capture.
+// argent reports taps as a fraction of the screen. agent-device reports
+// points; the screenshot's own pixel size is the point size at the
+// default 1x capture, and the collector keeps the --scale flag when one
+// was passed, so points map onto the image too.
+const sizes = images.map((f) => imageSize(join(evidenceDir, f)));
 const tapForShot = new Map();
 if (session) {
   const frac = (n) => typeof n === "number" && n >= 0 && n <= 1;
+  const fin = (n) => typeof n === "number" && Number.isFinite(n);
   let lastTap = null;
   for (const t of session.timeline) {
-    if (t.kind === "tap") lastTap = t.xyUnit === "fraction" && frac(t.x) && frac(t.y) ? { x: t.x, y: t.y } : null;
+    if (t.kind === "tap") lastTap = fin(t.x) && fin(t.y) ? t : null;
     else if (t.kind === "screenshot" && Number.isInteger(t.screenshotIndex)) {
-      if (lastTap) tapForShot.set(t.screenshotIndex, lastTap);
+      const size = sizes[t.screenshotIndex];
+      let tap = null;
+      if (lastTap && lastTap.xyUnit === "fraction" && frac(lastTap.x) && frac(lastTap.y)) {
+        tap = { x: lastTap.x, y: lastTap.y };
+      } else if (lastTap && lastTap.xyUnit === "pt" && size && size.w > 0 && size.h > 0) {
+        const scale = fin(t.scale) && t.scale > 0 ? t.scale : 1;
+        const x = (lastTap.x * scale) / size.w;
+        const y = (lastTap.y * scale) / size.h;
+        if (frac(x) && frac(y)) tap = { x, y };
+      }
+      if (tap) tapForShot.set(t.screenshotIndex, tap);
       lastTap = null;
     }
   }
@@ -300,7 +317,7 @@ const shots = images.map((f, i) => ({
   src: fileUrl(f),
   label: caption(f),
   flagged: flaggedShot === i + 1,
-  size: imageSize(join(evidenceDir, f)),
+  size: sizes[i],
   tap: tapForShot.get(i) || null,
 }));
 
@@ -327,18 +344,29 @@ if (session) {
 // Where the page will live, for the link-preview tags. Only http(s).
 const siteUrl = safeUrl(url).replace(/\/+$/, "");
 
-// The agent's written report, when there is one: plain text, kept as
-// typed, folded when long.
+// The agent's written report, when there is one. Agents write Markdown
+// (headings, bullets, code spans), so it is rendered as such by the
+// small, escaping renderer in markdown.mjs. Anything past a few lines
+// folds to a preview; the button opens it fully and folds it again.
 const reportText = String(report ?? "").replace(/\r\n?/g, "\n").trim();
+// A screenshot named in the report (as `2-checklist.png` or bare) opens
+// the viewer on that screenshot.
+const shotIndex = new Map(images.map((f, i) => [f, i]));
+const linkShots = (html) =>
+  html.replace(/(<code>)?([^<>\s]+\.(?:png|jpe?g))(<\/code>)?/gi, (m, open, name, close) => {
+    const i = shotIndex.get(name);
+    if (i === undefined || Boolean(open) !== Boolean(close)) return m;
+    return `<a href="#shot-${i + 1}" class="rp-shot" data-index="${i}">${m}</a>`;
+  });
 let reportHtml = "";
 if (reportText) {
   const lines = reportText.split("\n").length;
-  const long = reportText.length > 1500 || lines > 18;
+  const long = reportText.length > 700 || lines > 8;
   reportHtml = `<section id="report">
   ${sectionHead("Agent report", `${lines} ${lines === 1 ? "line" : "lines"}`)}
   <div class="card report-card${long ? " report-collapsed" : ""}" id="report-card">
-    <pre class="report">${esc(reportText)}</pre>
-    ${long ? `<div class="report-fade"><button type="button" class="btn" id="report-more">Show the full report</button></div>` : ""}
+    <div class="report" id="report-body">${linkShots(renderMarkdown(reportText))}</div>
+    ${long ? `<div class="report-foot"><button type="button" class="btn" id="report-toggle" aria-expanded="false" aria-controls="report-body">${icon("chevron-down")}<span>Show the full report</span></button></div>` : ""}
   </div>
 </section>`;
 }
@@ -350,7 +378,9 @@ const h1Class =
     ? " h1-xlong"
     : verdictDetail.length > 160
       ? " h1-long"
-      : "";
+      : verdictDetail.length > 100
+        ? " h1-mid"
+        : "";
 
 // ---------------------------------------------------------------- session
 // Timeline kinds (collect-session-evidence.mjs) -> label and Lucide icon.
@@ -383,6 +413,8 @@ let breakdownHtml = "";
 let timelineHtml = "";
 let perfHtml = "";
 let recordingHtml = "";
+let perfJson = "null";
+let platformRecUrl = "";
 let rawHtml = "";
 let sessionLink = "";
 let launchHtml = "";
@@ -429,6 +461,17 @@ ${facts.map(([k, val, cls]) => `  <div class="fact${String(val).length > 24 ? " 
     sessionLink = ` <a href="${esc(session.dashboardUrl)}" target="_blank" rel="noopener">Session on expo.dev ↗</a>`;
   }
 
+  // The platform's full-session recording. Timeline rows deep-link into it
+  // when the timeline counts from the recording's first frame, which is
+  // the case whenever the recording exists.
+  const recUrl = safeUrl(session.recording?.url);
+  const recAnchored = Boolean(
+    recUrl && session.anchorIso && session.recording?.firstFrameAt && session.anchorIso === session.recording.firstFrameAt,
+  );
+  const launchBtns = [];
+  let launchNote = "";
+  platformRecUrl = recUrl;
+
   // "Try this build": an expo.dev create-session link starts a fresh
   // browser-preview simulator session with the same EAS build the agent
   // ran (docs.expo.dev/preview/eas-simulator/create-session-links). It
@@ -436,7 +479,9 @@ ${facts.map(([k, val, cls]) => `  <div class="fact${String(val).length > 24 ? " 
   // open starts a new billable session, so the note says so. Links cannot
   // set a duration, so the name carries a marker suffix ("evidence-site
   // preview") that a cleanup job can match to stop these sessions.
-  if (expoOwner && expoSlug && /^[0-9a-f-]{20,}$/i.test(String(x.build_id || ""))) {
+  // Create-session links open an iOS browser preview only, so an Android
+  // run gets no button.
+  if (!isEmulator && expoOwner && expoSlug && /^[0-9a-f-]{20,}$/i.test(String(x.build_id || ""))) {
     const createUrl = new URL(
       `https://expo.dev/accounts/${expoOwner}/projects/${expoSlug}/simulator-sessions/create`,
     );
@@ -445,11 +490,20 @@ ${facts.map(([k, val, cls]) => `  <div class="fact${String(val).length > 24 ? " 
       "name",
       `${subject} · evidence-site preview`.slice(0, 255),
     );
-    launchHtml = `<div class="launch-row">
-      <a class="btn" href="${esc(createUrl.toString())}" target="_blank" rel="noopener" title="Starts a new EAS Simulator session with this build">${icon("smartphone")}Try this build on a simulator${icon("external-link")}</a>
-      <span class="launch-note">Starts a new browser-preview session on expo.dev that stops by itself within 30 minutes. Sign in with an Expo account that can access this project.</span>
-    </div>`;
+    launchBtns.push(
+      `<a class="btn" href="${esc(createUrl.toString())}" target="_blank" rel="noopener" title="Starts a new EAS Simulator session with this build">${icon("smartphone")}Try this build on a simulator${icon("external-link")}</a>`,
+    );
+    launchNote = `<span class="launch-note">Starts a new browser-preview session on expo.dev that stops by itself within 30 minutes. Sign in with an Expo account that can access this project.</span>`;
   }
+  if (recUrl)
+    launchBtns.push(
+      `<a class="btn" href="#recording" title="The platform's screen recording of the whole session">${icon("video")}Watch the run</a>`,
+    );
+  if (launchBtns.length)
+    launchHtml = `<div class="launch-row">
+      ${launchBtns.join("\n      ")}
+      ${launchNote}
+    </div>`;
 
   // Command breakdown: what the agent spent its device commands on.
   const tl = session.timeline;
@@ -483,7 +537,7 @@ ${facts.map(([k, val, cls]) => `  <div class="fact${String(val).length > 24 ? " 
   // Timeline.
   const anchorParsed = session.anchorIso ? Date.parse(session.anchorIso) : NaN;
   const anchorMs = Number.isFinite(anchorParsed) ? anchorParsed : null;
-  const rows = tl.map((t) => {
+  const rows = tl.map((t, i) => {
     const tsMs = t.ts ? Date.parse(t.ts) : NaN;
     const off =
       anchorMs != null && Number.isFinite(tsMs) ? tsMs - anchorMs : t.offsetMs;
@@ -497,6 +551,21 @@ ${facts.map(([k, val, cls]) => `  <div class="fact${String(val).length > 24 ? " 
         ? t.screenshotIndex
         : null;
     const flagged = flaggedShot != null && shotIdx === flaggedShot - 1;
+    // An input step links to the screenshot that followed it, before the
+    // next input, so cause and effect sit on one row.
+    const isInput = (e) => e && typeof e === "object" && (e.kind === "tap" || e.kind === "type" || e.kind === "swipe");
+    let nextShot = null;
+    if (isInput(t)) {
+      for (let j = i + 1; j < tl.length; j++) {
+        const n = tl[j];
+        if (isInput(n)) break;
+        if (n && n.kind === "screenshot" && Number.isInteger(n.screenshotIndex) && n.screenshotIndex >= 0 && images[n.screenshotIndex]) {
+          nextShot = n.screenshotIndex;
+          break;
+        }
+      }
+    }
+    const jump = recAnchored && Number.isFinite(off) && off >= 0;
     // A screenshot row is captioned by the image it produced, not the
     // controller's artifact filename.
     const label =
@@ -504,12 +573,13 @@ ${facts.map(([k, val, cls]) => `  <div class="fact${String(val).length > 24 ? " 
         ? `Screenshot ${shotIdx + 1} · ${caption(images[shotIdx])}`
         : t.label;
     return `  <li class="tl-row${flagged ? " flagged" : ""}">
-    <span class="tl-time">${fmtClock(off)}</span>
+    ${jump ? `<a class="tl-time tl-jump" href="#recording" data-t="${(off / 1000).toFixed(1)}" title="Play the recording from ${fmtClock(off)}">${fmtClock(off)}</a>` : `<span class="tl-time">${fmtClock(off)}</span>`}
     <span class="tl-icon">${icon(iconFor(t))}</span>
     <span class="tl-body">
       <span class="tl-label">${esc(label || t.tool || t.kind || "operation")}</span>${Number(t.repeat) > 1 ? `<span class="tl-rep">×${Number(t.repeat)}</span>` : ""}
       <code class="kind">${esc(t.tool || t.kind || "other")}</code>
       ${shotIdx != null ? `<button type="button" class="tl-view" data-index="${shotIdx}"><img src="${esc(fileUrl(images[shotIdx]))}" alt="" loading="lazy">View</button>` : ""}
+      ${nextShot != null ? `<button type="button" class="tl-view tl-next" data-index="${nextShot}" title="The screenshot taken after this step"><img src="${esc(fileUrl(images[nextShot]))}" alt="" loading="lazy">Then screenshot ${nextShot + 1}</button>` : ""}
       ${flagged ? `<span class="tl-note">${icon("triangle-alert")}Named in the verdict</span>` : ""}
       ${failedCmd ? `<span class="tl-note">${icon("triangle-alert")}Command ${t.outcome === "failure" ? "failed" : esc(t.outcome)}</span>` : ""}
     </span>
@@ -526,7 +596,7 @@ ${facts.map(([k, val, cls]) => `  <div class="fact${String(val).length > 24 ? " 
     timelineHtml = `<section id="timeline">
   <div class="sec-intro">
     ${sectionHead("What the agent did", `${rows.length} steps`)}
-    <p class="lede-sm">Every device command the controller recorded, in order. Times count from ${fromLabel}.</p>
+    <p class="lede-sm">Every device command the controller recorded, in order. Times count from ${fromLabel}.${recAnchored ? " Click a time to play the recording from that moment." : ""}</p>
   </div>
   <ol class="tl${folded ? " tl-folded" : ""}" id="tl">
 ${rows.join("\n")}
@@ -567,20 +637,39 @@ ${rows.join("\n")}
     };
     const t0Parsed = m.t0Iso ? Date.parse(m.t0Iso) : NaN;
     const t0 = Number.isFinite(t0Parsed) ? t0Parsed : null;
-    const tapMarks =
+    const marksFor = (pred) =>
       t0 == null
         ? []
         : tl
-            .filter((t) => t.kind === "tap" && t.ts)
+            .filter((t) => pred(t) && t.ts)
             .map((t) => (Date.parse(t.ts) - t0) / maxT)
             .filter((f) => Number.isFinite(f) && f >= 0 && f <= 1)
             .map((f) => (f * 1000).toFixed(1));
-    const hairlines = tapMarks
-      .map(
-        (xp) =>
-          `<line x1="${xp}" y1="0" x2="${xp}" y2="120" stroke="var(--brand-pink)" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"></line>`,
-      )
-      .join("");
+    const tapMarks = marksFor((t) => t.kind === "tap");
+    // The app launch, so the CPU spike at the start of a run has a name.
+    const launchMarks = marksFor((t) => t.kind === "open");
+    const hairlines =
+      tapMarks
+        .map(
+          (xp) =>
+            `<line x1="${xp}" y1="0" x2="${xp}" y2="120" stroke="var(--brand-pink)" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"></line>`,
+        )
+        .join("") +
+      launchMarks
+        .map(
+          (xp) =>
+            `<line class="hair-launch" x1="${xp}" y1="0" x2="${xp}" y2="120" stroke="var(--fg-secondary)" stroke-width="1" vector-effect="non-scaling-stroke"></line>`,
+        )
+        .join("");
+    // What the hover readout names: input steps, launches, and captures
+    // within a couple of seconds of the pointer.
+    const hoverSteps =
+      t0 == null
+        ? []
+        : tl
+            .filter((t) => t.ts && ["tap", "type", "swipe", "open", "screenshot"].includes(t.kind))
+            .map((t) => ({ t: Date.parse(t.ts) - t0, label: String(t.label || t.tool || t.kind) }))
+            .filter((st) => Number.isFinite(st.t));
     // Time axis: clock-friendly steps, the run's length as the last label.
     const maxS = maxT / 1000;
     const step =
@@ -600,9 +689,10 @@ ${rows.join("\n")}
           `<span class="${i === 0 ? "first" : i === ticks.length - 1 ? "last" : ""}" style="left:${(f * 100).toFixed(2)}%">${label}</span>`,
       )
       .join("")}</div>`;
-    const chart = (title, right, color, line, area, extra = "") => `<div class="chart">
+    const chart = (series, title, right, color, line, area, extra = "") => `<div class="chart" data-series="${series}">
       <div class="chart-head"><span class="chart-title">${title}</span><span class="chart-right">${right}</span></div>
       <div class="chart-box">
+        <div class="ch-line" hidden></div><div class="ch-tip" hidden></div>
         <svg viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true">
           <line x1="0" y1="60" x2="1000" y2="60" stroke="var(--border-subtle)" stroke-width="1" vector-effect="non-scaling-stroke"></line>
           ${hairlines}
@@ -622,6 +712,7 @@ ${rows.join("\n")}
     const netHtml =
       netHi > 0
         ? chart(
+            "net",
             "Network, KB/s · in (filled) and out (line)",
             `peak ${fmtKB(netHi)}`,
             "brand-pink",
@@ -635,6 +726,13 @@ ${rows.join("\n")}
     const fmtPct = (n) => (num(n) ? `${n.toFixed(1)}%` : "—");
     const fmtMB = (n) => (num(n) ? `${Math.round(n)} MB` : "—");
     const intervalS = (num(m.sampleIntervalMs) ? m.sampleIntervalMs : 1000) / 1000;
+    perfJson = jsonForScript({
+      maxT,
+      cpu: cpuPts,
+      mem: memPts,
+      net: netHi > 0 ? samples.map((r) => [r.t, (num(r.netIn) ? r.netIn : 0) / 1024, (num(r.netOut) ? r.netOut : 0) / 1024]) : [],
+      steps: hoverSteps,
+    });
     perfHtml = `<section id="performance">
   ${sectionHead("App performance", `${samples.length} samples`)}
   <div class="stats">
@@ -644,10 +742,10 @@ ${rows.join("\n")}
     ${stat("Average memory", fmtMB(s.memAvgMB), "resident")}
   </div>
   <div class="card charts">
-    ${chart(`CPU, % of one core, sampled every ${intervalS} s`, `peak ${fmtPct(s.cpuMax)}`, "brand-blue", path(cpuPts, 0, cpuHi, false), path(cpuPts, 0, cpuHi, true))}
-    ${chart("Memory, MB resident", mems.length ? `${Math.round(Math.min(...mems))}–${Math.round(Math.max(...mems))} MB` : "—", "brand-green", path(memPts, memLo, memHi, false), path(memPts, memLo, memHi, true))}
+    ${chart("cpu", `CPU, % of one core, sampled every ${intervalS} s`, `peak ${fmtPct(s.cpuMax)}`, "brand-blue", path(cpuPts, 0, cpuHi, false), path(cpuPts, 0, cpuHi, true))}
+    ${chart("mem", "Memory, MB resident", mems.length ? `${Math.round(Math.min(...mems))}–${Math.round(Math.max(...mems))} MB` : "—", "brand-green", path(memPts, memLo, memHi, false), path(memPts, memLo, memHi, true))}
     ${netHtml}
-    <p class="chart-note"><span class="hairline-key"></span>Hairlines mark the agent's taps. Sample times are aligned to ${m.t0Source === "recording" ? "the first recorded frame" : "session start"}, so the alignment is approximate to about a second.</p>
+    <p class="chart-note"><span class="hairline-key"></span>Dashed hairlines mark the agent's taps.${launchMarks.length ? ` <span class="hairline-key launch"></span>The solid one marks the app launch.` : ""} Hover or touch a chart for the value at that moment. Sample times are aligned to ${m.t0Source === "recording" ? "the first recorded frame" : "session start"}, so the alignment is approximate to about a second.</p>
   </div>
 </section>`;
   }
@@ -675,10 +773,11 @@ ${rows.join("\n")}
 </section>`;
 }
 
-// Recording: only clips the agent recorded itself. The platform's
-// full-session video is linked from Raw data, not embedded.
-if (videos.length) {
-  const blocks = videos.map(
+// Recording. The platform's full-session video is embedded with
+// preload="none", so it costs nothing until someone presses play; the
+// timeline's times seek it. Clips the agent recorded itself follow.
+{
+  const clipBlocks = videos.map(
     (f) => `<div class="rec-grid">
     <div class="rec-frame"><video controls muted playsinline preload="metadata" src="${esc(fileUrl(f))}"></video></div>
     <div class="rec-meta">
@@ -687,10 +786,28 @@ if (videos.length) {
     </div>
   </div>`,
   );
-  recordingHtml = `<section id="recording">
-  ${sectionHead("Agent recording", String(videos.length))}
-  ${blocks.join("\n  ")}
+  if (platformRecUrl) {
+    const rec = session.recording;
+    const fin = (n) => typeof n === "number" && Number.isFinite(n) && n > 0;
+    const ratio = fin(rec.width) && fin(rec.height) ? ` style="aspect-ratio: ${Math.round(rec.width)} / ${Math.round(rec.height)}"` : "";
+    const size = fin(rec.bytes) ? `, ${(rec.bytes / 1048576).toFixed(1)} MB` : "";
+    recordingHtml = `<section id="recording">
+  ${sectionHead("Recording", "the whole session")}
+  <div class="rec-grid" id="platform-rec">
+    <div class="rec-frame"${ratio}><video controls playsinline preload="none" src="${esc(platformRecUrl)}"></video></div>
+    <div class="rec-meta">
+      <p>The platform's screen recording of the session, from the device's first frame to the stop${size}. Nothing downloads until you press play. A time in the timeline above plays it from that moment.</p>
+      <div class="btn-row"><a class="btn" href="${esc(platformRecUrl)}" target="_blank" rel="noopener">${icon("download")}Download recording.mp4</a></div>
+    </div>
+  </div>
+  ${clipBlocks.length ? `<h3 class="rec-sub">Clips the agent recorded <span class="count">${clipBlocks.length}</span></h3>\n  ${clipBlocks.join("\n  ")}` : ""}
 </section>`;
+  } else if (clipBlocks.length) {
+    recordingHtml = `<section id="recording">
+  ${sectionHead("Agent recording", String(clipBlocks.length))}
+  ${clipBlocks.join("\n  ")}
+</section>`;
+  }
 }
 
 const navLinks = [
@@ -780,6 +897,9 @@ ${metaHtml}
   document.documentElement.setAttribute('data-theme-pref', pref);
 })();
 </script>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="icon" href="./favicon.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="stylesheet" href="./colors_and_type.css">
 <style>
   /* Layout and component styles; every color is a token from
@@ -826,9 +946,11 @@ ${metaHtml}
   section.verdict { gap: 24px; }
   .sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   .sec-intro { display: flex; flex-direction: column; gap: 6px; }
-  h1 { margin: 0; flex: 1 1 480px; min-width: 0; font-size: 28px; line-height: 1.3; letter-spacing: -0.02em; font-weight: 600; color: var(--fg-display); text-wrap: pretty; }
-  h1.h1-long { font-size: 22px; line-height: 1.35; letter-spacing: -0.01em; }
-  h1.h1-xlong { font-size: 17px; line-height: 1.5; letter-spacing: 0; font-weight: 500; }
+  /* The verdict is the page's headline: display size, stepping down
+     (h1-long, h1-xlong) so a paragraph-length verdict still reads as one. */
+  h1 { margin: 0; width: 100%; min-width: 0; font-size: 36px; line-height: 1.2; letter-spacing: -0.03em; font-weight: 600; color: var(--fg-display); text-wrap: pretty; }
+  h1.h1-long { font-size: 28px; line-height: 1.3; letter-spacing: -0.02em; }
+  h1.h1-xlong { font-size: 20px; line-height: 1.45; letter-spacing: -0.01em; font-weight: 500; }
   h2 { margin: 0; font-size: 20px; line-height: 1.4; font-weight: 600; letter-spacing: -0.0125em; color: var(--fg-display); }
   .count { font-size: 13px; color: var(--fg-tertiary); font-variant-numeric: tabular-nums; }
   .hint { margin-left: auto; font-size: 13px; color: var(--fg-tertiary); }
@@ -839,10 +961,11 @@ ${metaHtml}
   /* Verdict */
   .run-eyebrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--fg-tertiary); }
   .run-eyebrow-bot { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-secondary); font-weight: 500; }
-  .verdict-row { display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; min-width: 0; }
+  /* The status pill sits above the headline, which takes the full width. */
+  .verdict-row { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; min-width: 0; }
   .launch-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .launch-note { font-size: 12px; color: var(--fg-tertiary); max-width: 480px; text-wrap: pretty; }
-  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 10px; border-radius: 9999px; font-weight: 600; font-size: 13px; letter-spacing: 0.04em; font-family: var(--font-mono); flex-shrink: 0; margin-top: 6px; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 10px; border-radius: 9999px; font-weight: 600; font-size: 13px; letter-spacing: 0.04em; font-family: var(--font-mono); flex-shrink: 0; }
   .pill-pass { background: var(--status-success-bg); color: var(--status-success-fg); }
   .pill-fail { background: var(--status-danger-bg); color: var(--status-danger-fg); }
   .pill-warn { background: var(--status-warning-bg); color: var(--status-warning-fg); }
@@ -899,14 +1022,40 @@ ${metaHtml}
   .tl-view img { width: 20px; height: 36px; object-fit: cover; border-radius: 3px; border: 1px solid var(--border-default); display: block; }
   .tl-note { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; color: var(--status-danger-fg); }
   .tl-dur { font-family: var(--font-mono); font-size: 12px; color: var(--fg-tertiary); font-variant-numeric: tabular-nums; }
+  a.tl-jump { color: var(--fg-link); text-decoration: none; }
+  a.tl-jump:hover { text-decoration: underline; }
+  a.tl-jump:focus-visible { box-shadow: var(--shadow-focus); border-radius: 4px; }
   .tl.tl-folded > li:nth-child(n + 41) { display: none; }
   .tl-more-row { display: flex; justify-content: center; }
 
-  /* Agent report */
-  .report-card { position: relative; overflow: hidden; }
-  .report { margin: 0; padding: 20px 24px; font-family: var(--font-sans); font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: var(--fg-default); }
-  .report-collapsed .report { max-height: 320px; overflow: hidden; }
-  .report-fade { position: absolute; left: 0; right: 0; bottom: 0; padding: 56px 0 20px; display: flex; justify-content: center; background: linear-gradient(to bottom, transparent, var(--bg-default) 60%); }
+  /* Agent report: the agent's Markdown, folded to a preview until opened.
+     Folded, the button floats over a fade at the bottom of the preview;
+     open, it sits in its own row under the full text. */
+  .report-card { position: relative; }
+  .report-collapsed { overflow: hidden; }
+  .report { padding: 20px 24px; font-size: 14px; line-height: 1.6; color: var(--fg-default); }
+  .report-collapsed .report { max-height: 220px; overflow: hidden; }
+  .report > * { margin: 0 0 10px; }
+  .report > :last-child { margin-bottom: 0; }
+  .report h3, .report h4 { margin: 20px 0 8px; font-size: 15px; line-height: 1.4; font-weight: 600; letter-spacing: -0.01em; color: var(--fg-display); }
+  .report h4 { font-size: 14px; }
+  .report > h3:first-child, .report > h4:first-child { margin-top: 0; }
+  .report ul, .report ol { padding-left: 22px; }
+  .report li { margin: 3px 0; }
+  .report li::marker { color: var(--fg-tertiary); }
+  .report code { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; padding: 1px 5px; color: var(--fg-secondary); background: var(--code-bg); border: 1px solid var(--code-border); border-radius: var(--radius-sm); }
+  .report pre { padding: 12px 14px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; white-space: pre; overflow-x: auto; background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 8px; }
+  .report pre code { padding: 0; border: 0; background: none; font-size: inherit; color: inherit; }
+  .report blockquote { padding: 2px 0 2px 14px; border-left: 3px solid var(--border-strong); color: var(--fg-secondary); }
+  .report hr { margin: 16px 0; border: 0; border-top: 1px solid var(--border-default); }
+  .report strong { font-weight: 600; color: var(--fg-display); }
+  .report a.rp-shot { text-decoration: none; }
+  .report a.rp-shot code { color: var(--fg-link); cursor: zoom-in; }
+  .report a { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--fg-link) 40%, transparent); text-underline-offset: 2px; }
+  .report-foot { display: flex; justify-content: center; padding: 12px 20px 16px; border-top: 1px solid var(--border-subtle); }
+  .report-collapsed .report-foot { position: absolute; left: 0; right: 0; bottom: 0; padding: 56px 0 20px; border-top: 0; background: linear-gradient(to bottom, transparent, var(--bg-default) 60%); }
+  #report-toggle svg { transition: transform 0.15s ease; }
+  #report-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
 
   /* Performance */
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
@@ -927,8 +1076,15 @@ ${metaHtml}
   .axis span.last { transform: translateX(-100%); }
   .chart-note { font-size: 12px; color: var(--fg-tertiary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .hairline-key { display: inline-block; width: 14px; border-top: 1px dashed var(--brand-pink); }
+  .hairline-key.launch { border-top-style: solid; border-top-color: var(--fg-secondary); }
+  /* Hover readout: one crosshair across all charts, a value chip per chart. */
+  .chart-box { cursor: crosshair; touch-action: pan-y; }
+  .ch-line { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--fg-default); opacity: 0.55; pointer-events: none; z-index: 1; }
+  .ch-tip { position: absolute; top: 6px; z-index: 2; padding: 3px 8px; font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--fg-default); background: var(--bg-element); border: 1px solid var(--border-default); border-radius: 6px; box-shadow: var(--shadow-small); white-space: nowrap; pointer-events: none; }
+  .ch-line[hidden], .ch-tip[hidden] { display: none; }
 
-  /* Agent recording */
+  /* Recording */
+  .rec-sub { margin: 8px 0 0; font-size: 14px; font-weight: 600; color: var(--fg-display); display: flex; align-items: baseline; gap: 8px; }
   .rec-grid { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 32px; align-items: start; }
   .rec-frame { border-radius: 12px; overflow: hidden; border: 1px solid var(--border-default); background: #000; aspect-ratio: 1206 / 2622; box-shadow: var(--shadow-tiny); }
   .rec-frame video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
@@ -988,14 +1144,14 @@ ${metaHtml}
     main { padding: 28px 16px 48px; gap: 40px; }
     section { gap: 16px; scroll-margin-top: 64px; }
     section.verdict { gap: 18px; }
-    h1 { font-size: 22px; line-height: 1.3; flex-basis: 100%; }
-    h1.h1-long { font-size: 19px; }
-    h1.h1-xlong { font-size: 16px; }
+    h1 { font-size: 25px; line-height: 1.25; letter-spacing: -0.02em; }
+    h1.h1-mid { font-size: 22px; }
+    h1.h1-long { font-size: 20px; line-height: 1.3; }
+    h1.h1-xlong { font-size: 17px; }
     h2 { font-size: 18px; }
     .hint { display: none; }
     .lede { font-size: 14px; }
     .verdict-row { gap: 12px; }
-    .pill { margin-top: 0; }
     .launch-row { align-items: flex-start; flex-direction: column; gap: 8px; }
     .fact { flex-basis: 40%; padding: 12px 14px; }
     .fact.fact-wide { flex-basis: 100%; }
@@ -1149,7 +1305,7 @@ ${rawHtml}
 })();
 
 (function () {
-  // Folds: the long timeline and the long report open on one click.
+  // Fold: the long timeline opens on one click.
   function unfold(btnId, targetId, cls) {
     var btn = document.getElementById(btnId);
     var el = document.getElementById(targetId);
@@ -1160,7 +1316,20 @@ ${rawHtml}
     });
   }
   unfold('tl-more', 'tl', 'tl-folded');
-  unfold('report-more', 'report-card', 'report-collapsed');
+})();
+
+(function () {
+  // The report opens to its full height and folds back on the same button.
+  var btn = document.getElementById('report-toggle');
+  var card = document.getElementById('report-card');
+  if (!btn || !card) return;
+  var label = btn.querySelector('span');
+  btn.addEventListener('click', function () {
+    var open = !card.classList.toggle('report-collapsed');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    label.textContent = open ? 'Show less' : 'Show the full report';
+    if (!open) card.scrollIntoView({ block: 'nearest' });
+  });
 })();
 
 (function () {
@@ -1198,8 +1367,8 @@ ${rawHtml}
   function close() { lb.classList.remove('open'); document.body.style.overflow = ''; setHash(''); }
   var m = /^#shot-(\\d+)$/.exec(location.hash);
   if (m && Number(m[1]) >= 1 && Number(m[1]) <= shots.length) open(Number(m[1]) - 1);
-  document.querySelectorAll('.shot, .tl-view').forEach(function (b) {
-    b.addEventListener('click', function () { open(Number(b.dataset.index)); });
+  document.querySelectorAll('.shot, .tl-view, .rp-shot').forEach(function (b) {
+    b.addEventListener('click', function (e) { e.preventDefault(); open(Number(b.dataset.index)); });
   });
   document.getElementById('lb-close').addEventListener('click', close);
   document.getElementById('lb-prev').addEventListener('click', function (e) { e.stopPropagation(); show(current - 1); });
@@ -1213,6 +1382,82 @@ ${rawHtml}
     if (e.key === 'Escape') close();
     else if (e.key === 'ArrowLeft') show(current - 1);
     else if (e.key === 'ArrowRight') show(current + 1);
+  });
+})();
+
+(function () {
+  // A time in the timeline plays the platform recording from that moment.
+  var video = document.querySelector('#platform-rec video');
+  if (!video) return;
+  document.querySelectorAll('a.tl-jump[data-t]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var t = Number(a.getAttribute('data-t'));
+      var seek = function () { try { video.currentTime = t; } catch (err) {} };
+      if (video.readyState >= 1) seek(); else video.addEventListener('loadedmetadata', seek, { once: true });
+      video.scrollIntoView({ block: 'center' });
+      var p = video.play();
+      if (p && p.catch) p.catch(function () {});
+    });
+  });
+})();
+
+(function () {
+  // Chart hover: one crosshair across every chart, the value at that moment
+  // in each, and the agent's step when one happened within 2.5 s.
+  var perf = ${perfJson};
+  if (!perf || !perf.maxT) return;
+  var charts = Array.prototype.slice.call(document.querySelectorAll('.chart[data-series]'));
+  if (!charts.length) return;
+  function clock(ms) { var s = Math.max(0, Math.round(ms / 1000)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+  function nearest(pts, t) {
+    if (!pts.length) return null;
+    var lo = 0, hi = pts.length - 1;
+    while (lo < hi) { var mid = (lo + hi) >> 1; if (pts[mid][0] < t) lo = mid + 1; else hi = mid; }
+    var a = pts[lo], b = pts[lo - 1];
+    return b && Math.abs(b[0] - t) < Math.abs(a[0] - t) ? b : a;
+  }
+  function stepAt(t) {
+    var best = null;
+    for (var i = 0; i < perf.steps.length; i++) {
+      var d = Math.abs(perf.steps[i].t - t);
+      if (d <= 2500 && (!best || d < best.d)) best = { d: d, label: perf.steps[i].label };
+    }
+    return best ? best.label : '';
+  }
+  function series(name) { return name === 'cpu' ? perf.cpu : name === 'mem' ? perf.mem : perf.net; }
+  function text(name, p) {
+    if (!p) return '';
+    if (name === 'cpu') return p[1].toFixed(1) + '% CPU';
+    if (name === 'mem') return Math.round(p[1]) + ' MB';
+    return 'in ' + p[1].toFixed(1) + ' · out ' + (p[2] || 0).toFixed(1) + ' KB/s';
+  }
+  function render(t) {
+    charts.forEach(function (c) {
+      var box = c.querySelector('.chart-box'), line = c.querySelector('.ch-line'), tip = c.querySelector('.ch-tip');
+      if (t == null) { line.hidden = true; tip.hidden = true; return; }
+      var name = c.getAttribute('data-series');
+      var p = nearest(series(name), t);
+      var f = (p ? p[0] : t) / perf.maxT;
+      line.style.left = (f * 100) + '%';
+      line.hidden = false;
+      var step = stepAt(t);
+      tip.textContent = clock(t) + ' · ' + text(name, p) + (step ? ' · ' + step : '');
+      tip.hidden = false;
+      var w = box.clientWidth, tw = tip.offsetWidth, x = f * w;
+      tip.style.left = (x + 8 + tw > w ? Math.max(0, x - 8 - tw) : x + 8) + 'px';
+    });
+  }
+  charts.forEach(function (c) {
+    var box = c.querySelector('.chart-box');
+    function at(e) {
+      var r = box.getBoundingClientRect();
+      var f = (e.clientX - r.left) / r.width;
+      render(Math.min(perf.maxT, Math.max(0, f * perf.maxT)));
+    }
+    box.addEventListener('pointermove', at);
+    box.addEventListener('pointerdown', at);
+    box.addEventListener('pointerleave', function () { render(null); });
   });
 })();
 </script>

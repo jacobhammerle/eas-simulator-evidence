@@ -53,6 +53,7 @@ export function buildIndex({ dir, out, subject = "Runs", projectName = "", log =
   const runs = readRuns(dir);
   cpSync(join(assetsDir, "colors_and_type.css"), join(siteDir, "colors_and_type.css"));
   cpSync(join(assetsDir, "fonts"), join(siteDir, "fonts"), { recursive: true });
+  for (const f of ["favicon.svg", "favicon.png", "apple-touch-icon.png"]) cpSync(join(assetsDir, f), join(siteDir, f));
 
   const counts = { pass: 0, fail: 0, replicated: 0, neutral: 0 };
   for (const r of runs) counts[PILL[r.kind] ? r.kind : "neutral"]++;
@@ -103,6 +104,9 @@ export function buildIndex({ dir, out, subject = "Runs", projectName = "", log =
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
 })();
 </script>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="icon" href="./favicon.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="stylesheet" href="./colors_and_type.css">
 <style>
   * { box-sizing: border-box; }

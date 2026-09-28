@@ -158,3 +158,12 @@ test("junitXml maps kinds to pass, failure, and skipped", () => {
   assert.match(none, /time="0"/);
   assert.doesNotMatch(none, /system-out/);
 });
+
+// --- aliasUrl ---------------------------------------------------------------
+
+test("aliasUrl is the EAS Hosting alias address, or empty without a slug or alias", async () => {
+  const { aliasUrl } = await import("../src/deploy.mjs");
+  assert.equal(aliasUrl("employee-onboarding", "pr-12-evidence"), "https://employee-onboarding--pr-12-evidence.expo.app");
+  assert.equal(aliasUrl("", "pr-12-evidence"), "");
+  assert.equal(aliasUrl("app", ""), "");
+});

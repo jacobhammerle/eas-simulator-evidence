@@ -102,7 +102,7 @@ test("every nav link targets a section on the page", () => {
   const { h } = built();
   const links = h.match(/<nav class="nav-links">([\s\S]*?)<\/nav>/)[1];
   const targets = [...links.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(targets, ["report", "screenshots", "timeline", "performance", "data"]);
+  assert.deepEqual(targets, ["report", "screenshots", "timeline", "performance", "recording", "data"]);
   for (const t of targets) assert.match(h, new RegExp(`<section id="${t}"`));
 });
 

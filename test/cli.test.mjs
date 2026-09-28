@@ -200,3 +200,34 @@ test("collect: no session id exits 0 with a note, and --json prints null", () =>
   assert.match(r.stderr, /no session id/);
   assert.equal(cli(["collect"]).code, 2);
 });
+
+test("build: --fail-on turns the verdict into exit 3, after the site is written", () => {
+  const dir = makeEvidence({ images: ["1-a.png"] });
+  const out = fresh("failon");
+  let r = cli(["build", dir, "--subject", "x", "--verdict", "FAIL: Screenshot 1 is wrong", "--out", out, "--json", "--fail-on", "fail"]);
+  assert.equal(r.code, 3);
+  assert.ok(existsSync(join(out, "index.html")), "the site is still built");
+  assert.match(r.stdout, /"kind":"fail"/);
+  assert.match(r.stderr, /--fail-on fail: the verdict is "FAIL", exiting 3/);
+
+  r = cli(["build", dir, "--subject", "x", "--verdict", "FAIL: nope", "--out", out]);
+  assert.equal(r.code, 0, "without --fail-on a FAIL verdict is still exit 0");
+
+  r = cli(["build", dir, "--subject", "x", "--verdict", "INCONCLUSIVE: no idea", "--out", out, "--fail-on", "fail"]);
+  assert.equal(r.code, 0, "fail only fails FAIL");
+  r = cli(["build", dir, "--subject", "x", "--verdict", "INCONCLUSIVE: no idea", "--out", out, "--fail-on", "not-pass"]);
+  assert.equal(r.code, 3, "not-pass fails everything but a pass");
+  r = cli(["build", dir, "--subject", "x", "--verdict", "NOT-REPLICATED: fine", "--out", out, "--fail-on", "not-pass"]);
+  assert.equal(r.code, 0, "NOT-REPLICATED counts as a pass");
+
+  r = cli(["build", dir, "--subject", "x", "--verdict", "PASS: ok", "--out", out, "--fail-on", "sometimes"]);
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /--fail-on must be "fail" or "not-pass"/);
+});
+
+test("comment: --footer replaces the agent footer", () => {
+  const r = cli(["comment", fixture, "https://x.test", "--verdict", "PASS: ok", "--footer", "_Posted by the bot. Comment `@bot` to retry._"]);
+  assert.equal(r.code, 0);
+  assert.match(r.stdout, /_Posted by the bot\. Comment `@bot` to retry\._\n$/);
+  assert.doesNotMatch(r.stdout, /Posted by Agent/);
+});

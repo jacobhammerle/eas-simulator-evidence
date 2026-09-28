@@ -10,7 +10,7 @@ import { parseArgs, pairsToObject } from "../src/args.mjs";
 import { buildSite } from "../src/build.mjs";
 import { collectSession } from "../src/collect.mjs";
 import { DEFAULT_EAS_CLI_VERSION, resolveProject } from "../src/config.mjs";
-import { deploySite } from "../src/deploy.mjs";
+import { aliasUrl, deploySite } from "../src/deploy.mjs";
 import { initRecipe, TARGETS } from "../src/init.mjs";
 import { commentMarkdown } from "../src/comment.mjs";
 import { buildIndex } from "../src/index-page.mjs";
@@ -42,7 +42,8 @@ Usage
 order (1-home.png, 2-settings.png, ...) and optional .mp4/.mov clips.
 
 run      collect, then build. Takes every option of both.
-  --deploy-alias <name> Also deploy to EAS Hosting under this alias and print the URL
+  --deploy-alias <name> Also deploy to EAS Hosting under this alias and print the URL.
+                        The page is built with that address unless --url says otherwise
 
 build    Write the static site to <dir>/site/ (or --out).
   --subject <label>     Page label, e.g. "PR #12" or "Issue #7"        (required)
@@ -60,6 +61,9 @@ build    Write the static site to <dir>/site/ (or --out).
   --lane <text>         Lane label shown in the run facts
   --url <siteUrl>       Where the page will be hosted: enables link previews (og:image)
   --junit <path>        Also write a JUnit XML file with one test case for the run
+  --fail-on <what>      Exit 3 after the site is built (and deployed) when the
+                        verdict is "fail" (FAIL) or "not-pass" (anything but
+                        PASS / NOT-REPLICATED). Lets the CI job go red on its own
   --json                Print a JSON summary to stdout
 
 collect  Pull the session's own artifacts (events, metrics, recording link)
@@ -96,7 +100,8 @@ comment  Print a pull-request comment: badge, evidence link, thumbnails, the rep
   --verdict <line>      The verdict line, or --verdict-file <path> (line 1 + report)
   --report-file <path>  Report text for the folded section
   --title <text>        Heading. Default: Simulator evidence
-  --agent <text>        Footer "Posted by <agent>"
+  --agent <text>        Footer "Posted by <agent>."
+  --footer <text>       The footer line as given (instead of --agent)
   --line <text>         Extra bullet (repeatable), e.g. "📡 **Channel** — pr-12"
   --max <n>             Thumbnails. Default: 4
 
@@ -128,7 +133,7 @@ const FLAGS = ["json", "badge", "help", "version", "force", "no-browser", "dry-r
 
 // Every option each command accepts, camelCase. Anything else is a typo,
 // and a typo that is silently ignored is worse than an error.
-const COMMON_BUILD = ["subject", "verdict", "verdictFile", "reportFile", "out", "name", "owner", "slug", "projectDir", "agent", "buildId", "lane", "url", "junit", "json"];
+const COMMON_BUILD = ["subject", "verdict", "verdictFile", "reportFile", "out", "name", "owner", "slug", "projectDir", "agent", "buildId", "lane", "url", "junit", "failOn", "json"];
 const COMMON_COLLECT = ["session", "dotenv", "extra", "wait", "easCliVersion", "screenshots", "stop", "json"];
 const OPTIONS = {
   run: [...COMMON_BUILD, ...COMMON_COLLECT, "deployAlias"],
@@ -139,7 +144,7 @@ const OPTIONS = {
   thumbs: ["max"],
   verdict: ["badge", "fallback"],
   init: ["force", "projectDir"],
-  comment: ["verdict", "verdictFile", "reportFile", "title", "agent", "line", "max"],
+  comment: ["verdict", "verdictFile", "reportFile", "title", "agent", "footer", "line", "max"],
   index: ["out", "subject", "name"],
   sweep: ["olderThan", "nameSuffix", "type", "dryRun", "json", "easCliVersion"],
   version: [],
@@ -188,6 +193,7 @@ function buildOptions(a, dir) {
   const { verdict, report } = readVerdictAndReport(a);
   if (!a.subject) fail("--subject is required");
   if (!verdict.trim()) fail("--verdict or --verdict-file is required");
+  if (a.failOn !== undefined && !FAIL_ON[a.failOn]) fail(`--fail-on must be "fail" or "not-pass", got "${a.failOn}"`);
   return {
     dir,
     subject: a.subject,
@@ -216,6 +222,20 @@ function collectOptions(a, dir) {
     stop: Boolean(a.stop),
     log: notes,
   };
+}
+
+// --fail-on turns the verdict into the exit code, after everything else has
+// run: the site exists and is deployed either way, and 3 is distinct from
+// 1 (the tool failed) and 2 (bad usage).
+const FAIL_ON = {
+  fail: (kind) => kind === "fail",
+  "not-pass": (kind) => kind !== "pass",
+};
+function exitOnVerdict(a, r) {
+  if (a.failOn && FAIL_ON[a.failOn](verdictKind(r.verdict))) {
+    notes.log(`--fail-on ${a.failOn}: the verdict is "${r.verdict.split(":")[0]}", exiting 3`);
+    process.exit(3);
+  }
 }
 
 // --junit writes one test case for the run next to whatever else CI collects.
@@ -267,20 +287,29 @@ async function main() {
       const r = buildSite(buildOptions(a, dir));
       writeJunit(a, r);
       console.log(a.json ? JSON.stringify(r) : summaryLine(r));
+      exitOnVerdict(a, r);
       return;
     }
     case "run": {
       if (!dir) fail("run needs <dir>");
       const opts = buildOptions(a, dir); // validate flags before spending time on collect
+      // An alias's URL is known up front, so the page can carry it (link
+      // previews, canonical) without a second build.
+      if (a.deployAlias && !opts.url) opts.url = aliasUrl(opts.expoSlug, a.deployAlias);
       await collectSession(collectOptions(a, dir));
       const r = buildSite(opts);
       let url = r.url;
       if (a.deployAlias) {
-        url = deploySite({ siteDir: r.siteDir, alias: a.deployAlias, projectDir: a.projectDir, easCliVersion: a.easCliVersion, log: notes }).url;
+        const d = deploySite({ siteDir: r.siteDir, alias: a.deployAlias, projectDir: a.projectDir, easCliVersion: a.easCliVersion, log: notes });
+        if (opts.url && d.aliasUrl && d.aliasUrl.replace(/\/+$/, "") !== opts.url) {
+          notes.warn(`note: the deployed alias URL is ${d.aliasUrl}, not ${opts.url}; pass --url with the real address so link previews work`);
+        }
+        url = d.url;
       }
       writeJunit(a, { ...r, url });
       if (a.json) console.log(JSON.stringify({ ...r, url }));
       else console.log(url ? `${summaryLine(r)}\n${url}` : summaryLine(r));
+      exitOnVerdict(a, r);
       return;
     }
     case "open": {
@@ -329,7 +358,7 @@ async function main() {
       if (!dir) fail("comment needs <dir> <siteUrl>");
       const { verdict, report } = readVerdictAndReport(a);
       if (!verdict.trim()) fail("--verdict or --verdict-file is required");
-      process.stdout.write(commentMarkdown({ dir, siteUrl, verdict, report, title: a.title, agent: a.agent, lines: a.line, max: a.max ? Number(a.max) : 4 }));
+      process.stdout.write(commentMarkdown({ dir, siteUrl, verdict, report, title: a.title, agent: a.agent, footer: a.footer, lines: a.line, max: a.max ? Number(a.max) : 4 }));
       return;
     }
     case "index": {

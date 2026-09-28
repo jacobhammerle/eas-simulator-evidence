@@ -10,10 +10,11 @@ export {
   parseCliJson,
   SCHEMA_VERSION,
 } from "./collect.mjs";
-export { deploySite, parseDeployOutput } from "./deploy.mjs";
+export { deploySite, parseDeployOutput, aliasUrl } from "./deploy.mjs";
 export { serveSite, openInBrowser } from "./serve.mjs";
 export { initRecipe, ensureGitignore, TARGETS } from "./init.mjs";
 export { commentMarkdown } from "./comment.mjs";
+export { renderMarkdown, inlineMarkdown } from "./markdown.mjs";
 export { junitXml } from "./junit.mjs";
 export { buildIndex, readRuns } from "./index-page.mjs";
 export { sweepSessions, listLiveSessions, PREVIEW_SUFFIX } from "./sweep.mjs";

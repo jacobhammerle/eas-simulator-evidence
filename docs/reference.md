@@ -30,7 +30,7 @@ Writes the site to `<dir>/site/` or `--out`.
 | `--subject <label>` | Page label. Required |
 | `--verdict <line>` | The verdict line. Required, or use `--verdict-file` |
 | `--verdict-file <path>` | Reads line 1 of the file as the verdict. The rest of the file becomes the "Agent report" section |
-| `--report-file <path>` | Text for the "Agent report" section, shown as typed and folded when long |
+| `--report-file <path>` | Markdown for the "Agent report" section: headings, lists, fenced code, quotes, inline code, bold, links. Escaped first; folded to a preview until opened |
 | `--out <dir>` | Output folder. Default `<dir>/site` |
 | `--name <text>` | App display name. Default: `expo.name` from `app.json` |
 | `--owner <account>` | Expo account. Default: `expo.owner` from `app.json` |
@@ -41,15 +41,16 @@ Writes the site to `<dir>/site/` or `--out`.
 | `--lane <text>` | A lane label for the run facts, for example `iOS · Checklist` |
 | `--url <siteUrl>` | Where the page will be hosted. Enables the `og:image` link preview and the canonical link |
 | `--junit <path>` | Also write a JUnit XML file with one test case for the run: pass, `<failure>` for FAIL, `<skipped>` for INCONCLUSIVE |
+| `--fail-on <what>` | Exit 3 after the site is written (and, for `run`, deployed) when the verdict is `fail` (FAIL) or `not-pass` (anything but PASS and NOT-REPLICATED). Without it the exit code only reports whether the tool worked |
 | `--json` | Print a JSON summary to stdout |
 
-Projects with `app.config.js` or `app.config.ts` pass `--name`, `--owner`, and `--slug` as flags.
+Projects with `app.config.js` or `app.config.ts` that has no `app.json` next to it pass `--name`, `--owner`, and `--slug` as flags. An `app.json` that the config file extends is read as usual.
 
 The "Try this build" button needs an owner, a slug, and a build id. Every click starts a new, billable simulator session on expo.dev under the viewer's account. The session name ends with `evidence-site preview`, so a cleanup job can find and stop those sessions.
 
 ### run
 
-`collect`, then `build`, with every option of both. Add `--deploy-alias <name>` to also deploy to EAS Hosting and print the URL.
+`collect`, then `build`, with every option of both. Add `--deploy-alias <name>` to also deploy to EAS Hosting and print the URL. The alias address (`https://<slug>--<alias>.expo.app`) is known before the deploy, so the page is built with it unless `--url` says otherwise; if the deploy reports a different address, the tool says so.
 
 ### open
 
@@ -63,7 +64,7 @@ Serves `<dir>/site` (or `--out`) on localhost and opens it in the browser, the w
 
 ### deploy
 
-Runs `eas deploy` on `<dir>/site` and prints the stable alias URL. A convenience for EAS Hosting only. Any static host works for the folder.
+Runs `eas deploy` on `<dir>/site` and prints the stable alias URL. A convenience for EAS Hosting only. Any static host works for the folder: it uses relative paths throughout, so it serves from a domain root, a subfolder, or `file://`. Pass `--url` to `build` or `run` with the final address so the page carries its canonical link and link-preview image.
 
 | Option | Meaning |
 | --- | --- |
@@ -88,6 +89,7 @@ Prints a pull-request comment in one fixed shape: a heading, the verdict with it
 | `--verdict <line>`, `--verdict-file <path>`, `--report-file <path>` | As for `build` |
 | `--title <text>` | The heading. Default `Simulator evidence` |
 | `--agent <text>` | Footer: `Posted by <agent>.` |
+| `--footer <text>` | The footer line exactly as given, in place of the `--agent` one |
 | `--line <text>` | An extra bullet. Repeatable |
 | `--max <n>` | Thumbnails. Default 4 |
 
@@ -127,7 +129,7 @@ Copies a recipe into the conventional place and adds `.env.eas-simulator` and `e
 ### Conventions
 
 - Results go to stdout. Notes, progress, and errors go to stderr. `--json` prints one JSON object to stdout and nothing else.
-- Exit 0 on success, 1 when the work failed, 2 for a usage error such as an unknown option or a missing value. An unknown option is an error, not a warning.
+- Exit 0 on success, 1 when the work failed, 2 for a usage error such as an unknown option or a missing value, 3 when `--fail-on` matched the verdict. An unknown option is an error, not a warning.
 - Color only on a terminal. `NO_COLOR` turns it off, `FORCE_COLOR` turns it on.
 - Precedence: flags, then environment (`EAS_SIMULATOR_SESSION_ID`, `EAS_CLI_VERSION`), then files (`.env.eas-simulator`, `app.json`).
 - `-h`, `--help`, `-v`, `--version`.
@@ -149,7 +151,14 @@ The repository is also a composite action. It runs the CLI that ships with the t
     EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 ```
 
-Every CLI option has an input of the same name: `report-file`, `session`, `agent`, `lane`, `name`, `owner`, `slug`, and `working-directory` for the Expo project root. Outputs are `url`, `site-dir`, `kind`, and `verdict`.
+Every CLI option has an input of the same name: `report-file`, `session`, `stop`, `agent`, `lane`, `name`, `owner`, `slug`, `url`, `junit`, `fail-on`, and `working-directory` for the Expo project root. Outputs are `url`, `site-dir`, `kind`, and `verdict`; with `fail-on` they are written before the step fails.
+
+## Running it in CI
+
+- Pin the version: `npx --yes eas-simulator-evidence@0.1.1 ...`, or add it as a devDependency and call `npx eas-simulator-evidence`. A job that calls `npx` without the package installed and without `--yes` stops with "npx canceled due to missing packages"; in a multi-job pipeline every job that runs the tool needs the install step.
+- Any CI works: the runner only sends commands to the cloud simulator. The recipes cover EAS Workflows, GitHub Actions, and GitLab CI; the local script is the same loop for a laptop.
+- `--json` prints exactly one line of JSON on stdout and everything else on stderr, so `URL=$(... run ... --json | node -e '...')` is safe.
+- `--fail-on fail` makes the job status follow the verdict; `--junit` puts the verdict in the CI's test report.
 
 ## The evidence directory
 
@@ -184,11 +193,11 @@ Agents do not always write the line cleanly, so every reader normalizes it the s
 `build` writes, next to `index.html`:
 
 - the screenshots and clips, under their own names
-- `colors_and_type.css` and `fonts/`
+- `colors_and_type.css`, `fonts/`, and the tab icons (`favicon.svg`, `favicon.png`, `apple-touch-icon.png`)
 - `session/` with `session.json` and the NDJSON files, when collected
 - `evidence.json`, a manifest: `subject`, `verdict`, `kind`, `projectName`, `agentName`, `url`, `buildId`, `images`, `firstImage`, `videos`, `report` (length), and `session` (id, platform, status, device, runtime, durationMs, bootMs, counts, dashboardUrl). The `index` command and bots read this instead of the HTML.
 
-The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each screenshot that followed a tap shows a ring at the tap's position when the controller reported it as a fraction of the screen (argent does; agent-device reports points, which need a device size the session does not carry). A banner above the verdict says when the session errored or was still running at collection time.
+The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each screenshot that followed a tap shows a ring at the tap's position. argent reports taps as a fraction of the screen. agent-device reports points, which the page maps onto the image: at the default 1x capture the image's pixel size is the point size, and when the screenshot was taken with `--scale`, the collector keeps that flag (`scale` on the timeline entry) and the page divides by it. In the timeline, an input step links to the screenshot that followed it, before the next input. When the session has a recording, the page embeds it under "Recording" with `preload="none"`, so nothing downloads until play; the hero shows a "Watch the run" button, and every time in the timeline plays the recording from that moment. The performance charts mark taps (dashed) and the app launch (solid), and hovering or touching a chart shows the value at that moment plus the agent's step within 2.5 s of it. A banner above the verdict says when the session errored or was still running at collection time.
 
 ## Session data
 
@@ -209,7 +218,7 @@ The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each scr
 | `uploadedScreenshots[]` | The screenshots the platform kept, with their artifact URLs |
 | `extra` | The `--extra` pairs you passed |
 
-Timeline `kind` is one of `tap`, `type`, `swipe`, `open`, `describe`, `screenshot`, `wait`, `alert`, `recording`, `other`. The timeline reads both agent-device and argent event shapes.
+Timeline `kind` is one of `tap`, `type`, `swipe`, `open`, `describe`, `screenshot`, `wait`, `alert`, `recording`, `other`. The timeline reads both agent-device and argent event shapes. agent-device entries also carry `target` (the ref or selector the command aimed at) and, when the controller resolved one, `targetLabel`, which then names the tap (`Tapped "Checklist"`); a screenshot taken with `--scale` carries `scale`.
 
 See [fixtures/qa-checklist-ios/session/session.json](../fixtures/qa-checklist-ios/session/session.json) for a complete example, and [fixtures/qa-checklist-ios/raw/simulator-get.json](../fixtures/qa-checklist-ios/raw/simulator-get.json) for the raw `simulator:get` output it was made from. The schema is the contract for anyone who wants to render the data another way.
 
@@ -245,7 +254,7 @@ Also exported: `normalizeSession`, `normalizeTimeline`, `normalizeMetrics`, `par
 ## Design notes
 
 - The page treats every field from a session as untrusted. Text is escaped, only `https` links become links, and a missing field drops one section instead of breaking the page.
-- Long content folds: a timeline after 40 rows, a report after about 18 lines. Long verdicts step the headline down in size.
+- Long content folds: a timeline after 40 rows, a report after 8 lines (a button opens it fully and folds it again). Long verdicts step the headline down in size.
 - Screenshot tiles use each image's own aspect ratio, read from the PNG or JPEG header. Landscape captures span two columns.
 - Breakpoints at 860px, 640px, and 380px. Nothing that carries information is hidden on a phone.
 - The theme follows the OS. A toggle in the nav picks system, light, or dark, remembered in `localStorage`.
@@ -257,4 +266,5 @@ Also exported: `normalizeSession`, `normalizeTimeline`, `normalizeMetrics`, `par
 | Inter (variable) | Google Fonts, latin subset | SIL Open Font License 1.1 |
 | JetBrains Mono (variable) | Google Fonts, latin subset | SIL Open Font License 1.1 |
 | Lucide icons | lucide-static | ISC |
+| Expo mark (tab icon) | `@expo/styleguide` | MIT; the mark itself is Expo's trademark, used here because every run is an EAS Simulator session |
 | Color and type tokens | Derived from `expo/styleguide` | MIT |

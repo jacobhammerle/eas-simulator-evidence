@@ -34,3 +34,16 @@ evidence:
       - evidence/site
     expose_as: "Simulator evidence"
     expire_in: 30 days
+
+# GitLab Pages instead of an artifact: add a `pages` job that copies the
+# folder to public/ (one folder per MR keeps every run reachable) and pass
+# the address to `run` with --url so link previews work:
+#
+# pages:
+#   stage: deploy
+#   needs: [evidence]
+#   script:
+#     - mkdir -p public/mr-$CI_MERGE_REQUEST_IID
+#     - cp -r evidence/site/. public/mr-$CI_MERGE_REQUEST_IID/
+#   artifacts:
+#     paths: [public]

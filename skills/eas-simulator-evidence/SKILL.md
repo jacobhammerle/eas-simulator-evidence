@@ -17,7 +17,7 @@ You produce three things. The tool does the rest.
    - `FAIL: Screenshot N shows <what is wrong>` — name the screenshot so the page flags it
    - `REPLICATED: <the reported bug happened, how>` / `NOT-REPLICATED: <it did not>`
    - `INCONCLUSIVE: <why no verdict>`
-   Write it as line 1 of `verdict.txt`. Everything after line 1 is your report and is shown on the page.
+   Write it as line 1 of `verdict.txt`. Everything after line 1 is your report and is shown on the page. Markdown works there: `## ` headings, `- ` bullets, `code`, **bold**, links.
 3. **A subject.** `PR #12`, `Issue #7`, `Nightly · iOS`.
 
 ## Order of operations
@@ -26,7 +26,8 @@ You produce three things. The tool does the rest.
 # after the app has been driven and screenshots saved:
 npx eas-simulator-evidence@latest run evidence --stop \
   --subject "PR #12" --verdict-file verdict.txt \
-  --build-id "$BUILD_ID"                                      # adds the "Try this build" button
+  --build-id "$BUILD_ID" \                                    # adds the "Try this build" button
+  --agent "<your name>"                                       # shown on the page and in the comment
 ```
 
 `--stop` makes the tool stop the session before collecting. Do not run `eas simulator:stop` yourself first: it clears `.env.eas-simulator`, and the tool reads the session id from that file. If the session is already stopped, pass `--session <id>`. It waits up to three minutes for the artifacts, then builds `evidence/site/`. A missing session never fails the run; the page is then screenshots only.
@@ -46,8 +47,10 @@ Lessons from real runs with agent-device on EAS Simulator:
 
 - **`open <bundleId>` first, always.** Even when `simulator:start --build-id` installed and launched the app, `screenshot` and `snapshot` fail with `SESSION_NOT_FOUND` until you run `open`.
 - **Re-read the tree before every tap.** `snapshot -i` refs (`@e8`) are numbered per screen. A ref from the Home tree points at something else on the Shop screen. A tap with a stale ref lands on the wrong control and the run is wrong without any error. Pattern: `snapshot -i` → find the ref by its label → `press` → wait → `screenshot` → `snapshot -i` again.
+- **Press the control, not its label.** In a list row the label and the switch are separate nodes. A press on the label node does nothing and the run is wrong without any error. Press the `[switch]`, `[button]`, or `[cell]` node, then read the tree to see the value change.
 - **Verify from the tree, not from the tap.** A tap that "worked" proves nothing. Before you write PASS for a screen, find its evidence in the tree: the tab button marked `[selected]`, a `screen-<name>` node, a heading. Put that check in the report.
 - **Wait after a tap.** Two to four seconds before the screenshot, or the capture shows the old screen.
+- **Screenshot after the tap you want to show.** The page draws a ring on a screenshot where the last tap before it landed, and links that tap to the screenshot in the timeline. A tap with no screenshot before the next tap gets neither. Keep screenshots at the default scale, or pass `--scale` so the session records it and the ring still lands.
 - **Name the session** with `--name "<what this run checks>"`. It is how a human finds it on expo.dev later.
 - **Stop through the tool.** `run --stop` stops the session and keeps its id. A manual `eas simulator:stop` first clears `.env.eas-simulator` and the page ends up with no session data.
 - **One session per run.** If a session is still booting, wait for it. Starting another creates a second bill and overwrites the dotenv.

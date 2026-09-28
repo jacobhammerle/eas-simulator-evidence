@@ -10,6 +10,14 @@ import { execFileSync } from "node:child_process";
 import { relative, resolve } from "node:path";
 import { DEFAULT_EAS_CLI_VERSION } from "./config.mjs";
 
+// The stable URL an EAS Hosting alias gets: https://<slug>--<alias>.expo.app.
+// Known before the deploy runs, so the page can carry its own address
+// (canonical link, og:image for link previews) on the first build.
+export function aliasUrl(slug, alias) {
+  if (!slug || !alias) return "";
+  return `https://${slug}--${alias}.expo.app`;
+}
+
 export function parseDeployOutput(raw) {
   const s = String(raw ?? "");
   const start = s.indexOf("{");

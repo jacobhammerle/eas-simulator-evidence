@@ -221,6 +221,15 @@ export function normalizeTimeline(eventsText, { anchorIso } = {}) {
       if (typeof e.data?.y === "number") op.y = e.data.y;
       op.xyUnit = "pt";
       op.app = e.data?.appBundleId || null;
+      // What the action aimed at: a ref ("@e15"), a selector, or, when the
+      // controller resolved one, the control's label.
+      if (typeof e.data?.target === "string" && e.data.target.trim()) op.target = e.data.target.trim();
+      if (typeof e.data?.targetLabel === "string" && e.data.targetLabel.trim())
+        op.targetLabel = e.data.targetLabel.trim();
+      // A screenshot's --scale flag. Points × scale = image pixels, which
+      // the page needs to place a tap ring on the image.
+      const scale = Number(e.data?.flags?.scale);
+      if (Number.isFinite(scale) && scale > 0) op.scale = scale;
     }
     ops.set(e.operationId, op);
   }
@@ -251,11 +260,17 @@ export function normalizeTimeline(eventsText, { anchorIso } = {}) {
       if (pct) Object.assign(entry, { x: pct.x, y: pct.y, xyUnit: "fraction" });
       else if (typeof o.x === "number")
         Object.assign(entry, { x: o.x, y: o.y, xyUnit: o.xyUnit });
+      if (o.target) entry.target = o.target;
+      if (o.targetLabel) {
+        entry.targetLabel = o.targetLabel;
+        if (kind === "tap") entry.label = `Tapped "${o.targetLabel}"`;
+      }
       if (kind === "screenshot" && entry.outcome === "success") {
         // The site pairs the n-th capture with the n-th image in the evidence
         // dir (agents save their screenshots in capture order).
         entry.screenshotIndex = screenshotIndex++;
         entry.artifactFile = shotFileFromSummary(o.summary);
+        if (o.scale) entry.scale = o.scale;
       }
       return entry;
     });
