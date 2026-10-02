@@ -56,6 +56,8 @@ test("builds the full page from the real fixture", () => {
   assert.match(h, /App performance/);
   assert.match(h, /101 samples/);
   assert.match(h, /iPhone 17 · iOS 26\.5/);
+  assert.match(h, /Session name<\/span><span class="fact-v">QA swarm: iOS · checklist<\/span>/);
+  assert.match(h, /Tags<\/span><span class="fact-v">qa-swarm<\/span>/);
   assert.match(h, /Try this build on a simulator/);
   assert.match(h, /simulator-sessions\/create\?buildId=0123456789abcdef0123456789abcdef/);
   assert.match(h, /recording\.mp4 ↗/);

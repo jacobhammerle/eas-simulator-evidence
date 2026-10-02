@@ -136,6 +136,26 @@ test("tiles have shot-N ids and the viewer reads and writes the hash", () => {
 
 // --- manifest ----------------------------------------------------------------
 
+test("an unnamed, untagged session shows no name or tags facts", () => {
+  const session = { ...readFixtureSession(), name: null, tags: [] };
+  const dir = makeEvidence({ images: ["1-home.png"], session });
+  const out = fresh("noname");
+  const r = buildSite({ dir, subject: "PR #1", verdict: "PASS: ok", out, log: quiet });
+  const h = html(out);
+  assert.doesNotMatch(h, /Session name<\/span>/);
+  assert.doesNotMatch(h, /Tags<\/span>/);
+  const m = JSON.parse(readFileSync(r.manifest, "utf8"));
+  assert.equal(m.session.name, null);
+  assert.deepEqual(m.session.tags, []);
+
+  // session.json is untrusted: a string where the array should be is ignored, not thrown on.
+  const odd = makeEvidence({ images: ["1-home.png"], session: { ...readFixtureSession(), tags: "qa" } });
+  const out2 = fresh("oddtags");
+  const r2 = buildSite({ dir: odd, subject: "PR #1", verdict: "PASS: ok", out: out2, log: quiet });
+  assert.doesNotMatch(html(out2), /Tags<\/span>/);
+  assert.deepEqual(JSON.parse(readFileSync(r2.manifest, "utf8")).session.tags, []);
+});
+
 test("evidence.json describes the run for tooling", () => {
   const { out, r } = build({ projectName: "My App", agentName: "bot", buildId: "0123456789abcdef0123456789abcdef", url: "https://e.com/x" });
   assert.equal(r.manifest, join(out, "evidence.json"));
@@ -151,6 +171,8 @@ test("evidence.json describes the run for tooling", () => {
   assert.deepEqual(m.images, ["1-checklist.png", "2-task-toggled-on.png", "3-task-toggled-off.png"]);
   assert.equal(m.firstImage, "1-checklist.png");
   assert.equal(m.session.id, "01a0d92e-195f-7045-a13c-23181fd8fc70");
+  assert.equal(m.session.name, "QA swarm: iOS · checklist");
+  assert.deepEqual(m.session.tags, ["qa-swarm"]);
   assert.equal(m.session.device, "iPhone 17");
   assert.equal(m.session.durationMs, 106639);
   assert.equal(m.session.counts.taps, 3);

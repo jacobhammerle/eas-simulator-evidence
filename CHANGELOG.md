@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-02
+
+### Added
+
+- The session's name and tags on the page, in the facts row, and in `evidence.json` under `session`. They come from `simulator:start --name` and `--tag`, or from a rename on expo.dev. The collector already stored both; the page now shows them.
+
+### Fixed
+
+- `collect` and `run` no longer wait the whole `--wait` budget on an Android session. Android sessions upload no performance metrics, so the collector took the events and recording as final only after three minutes of polling. It now finalizes an Android session on its events.
+
+### Changed
+
+- README rewritten: shorter, third person, a "Why add it" section, one full-height capture of the page, a link to the live demo page, and the EAS Simulator docs link fixed (the old path returned 404).
+- Skill: a "Before you drive" section, an Android section (no metrics, no "Try this build" button, application id for `open`), `CONFIRMED` in the verdict list, `--fail-on`, the exact `--json` shape, and a command block that survives a copy-paste (a comment sat after a line-continuation backslash). The reference lists `tags` and the Android metrics behavior.
+
 ## [0.2.1] - 2026-09-28
 
 ### Changed

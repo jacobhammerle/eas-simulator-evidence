@@ -262,6 +262,27 @@ test("collectSession polls until the events and metrics artifacts exist", async 
   assert.equal(out.metrics.samples.length, 101);
 });
 
+test("collectSession does not wait for metrics on Android: the platform uploads none", async () => {
+  const dir = fresh("android-wait");
+  let calls = 0;
+  const slept = [];
+  const rec = recorder();
+  const out = await collectSession({
+    dir, sessionId: "s", pollMs: 10, maxWaitMs: 100,
+    getSession: async () => {
+      calls++;
+      return { ...withArts(artifacts().filter((a) => a.metadata?.__eas_type !== "performance-metrics")), platform: "ANDROID" };
+    },
+    fetchText: fetchFromFixture, sleep: async (ms) => slept.push(ms), log: rec,
+  });
+  assert.equal(calls, 1);
+  assert.deepEqual(slept, []);
+  assert.equal(out.platform, "ANDROID");
+  assert.equal(out.metrics, null);
+  assert.equal(out.timeline.length, 13);
+  assert.ok(!rec.logs.some((l) => /not finalized/.test(l)));
+});
+
 test("collectSession gives up after maxWaitMs and keeps what it has", async () => {
   const dir = fresh("giveup");
   let calls = 0;

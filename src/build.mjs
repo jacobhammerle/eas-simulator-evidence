@@ -449,6 +449,12 @@ if (session) {
     ],
     ["Controller", session.type || "—"],
   ];
+  // The session's own name and tags, as set with simulator:start --name
+  // and --tag or edited on expo.dev. Both are optional on the platform, and
+  // session.json is untrusted input, so the shape is checked here.
+  if (session.name) facts.push(["Session name", String(session.name)]);
+  const tags = Array.isArray(session.tags) ? session.tags.map(String) : [];
+  if (tags.length) facts.push(["Tags", tags.join(" · ")]);
   if (x.build_id) facts.push(["Build", String(x.build_id).slice(0, 8), "mono"]);
   if (x.lane) facts.push(["Lane", String(x.lane)]);
   if (x.metrics) facts.push(["Lane timing", String(x.metrics)]);
@@ -863,6 +869,8 @@ const manifest = {
   session: session
     ? {
         id: session.id,
+        name: session.name ?? null,
+        tags: Array.isArray(session.tags) ? session.tags.map(String) : [],
         platform: session.platform ?? null,
         status: session.status ?? null,
         device: session.device?.name ?? null,

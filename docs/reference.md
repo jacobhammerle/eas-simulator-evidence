@@ -6,7 +6,7 @@ The full command reference, the verdict grammar, the session data schema, the pr
 
 ### collect
 
-Pulls the session's own artifacts into `<dir>/session/`: `session.json` (normalized facts, timeline, metrics, recording link), `events.ndjson`, and `metrics.ndjson`. The artifacts exist only once the session has stopped. Pass `--stop` and the tool stops the session first. Do not run `eas simulator:stop` yourself before `collect`: it clears `.env.eas-simulator`, which is where the tool reads the session id. If the session is already stopped, pass `--session <id>`. It then polls `eas simulator:get` until the events and metrics artifacts exist, for up to three minutes by default.
+Pulls the session's own artifacts into `<dir>/session/`: `session.json` (normalized facts, timeline, metrics, recording link), `events.ndjson`, and `metrics.ndjson`. The artifacts exist only once the session has stopped. Pass `--stop` and the tool stops the session first. Do not run `eas simulator:stop` yourself before `collect`: it clears `.env.eas-simulator`, which is where the tool reads the session id. If the session is already stopped, pass `--session <id>`. It then polls `eas simulator:get` until the events and metrics artifacts exist, for up to three minutes by default. An Android session is final once its events exist, since Android uploads no metrics.
 
 It never fails your pipeline. Without a session id or with a session it cannot read, it prints a note and exits 0, and the site is built from screenshots alone.
 
@@ -155,7 +155,7 @@ Every CLI option has an input of the same name: `report-file`, `session`, `stop`
 
 ## Running it in CI
 
-- Pin the version: `npx --yes eas-simulator-evidence@0.1.1 ...`, or add it as a devDependency and call `npx eas-simulator-evidence`. A job that calls `npx` without the package installed and without `--yes` stops with "npx canceled due to missing packages"; in a multi-job pipeline every job that runs the tool needs the install step.
+- Pin the version: `npx --yes eas-simulator-evidence@<version> ...`, or add it as a devDependency and call `npx eas-simulator-evidence`. A job that calls `npx` without the package installed and without `--yes` stops with "npx canceled due to missing packages"; in a multi-job pipeline every job that runs the tool needs the install step.
 - Any CI works: the runner only sends commands to the cloud simulator. The recipes cover EAS Workflows, GitHub Actions, and GitLab CI; the local script is the same loop for a laptop.
 - `--json` prints exactly one line of JSON on stdout and everything else on stderr, so `URL=$(... run ... --json | node -e '...')` is safe.
 - `--fail-on fail` makes the job status follow the verdict; `--junit` puts the verdict in the CI's test report.
@@ -195,7 +195,7 @@ Agents do not always write the line cleanly, so every reader normalizes it the s
 - the screenshots and clips, under their own names
 - `colors_and_type.css`, `fonts/`, and the tab icons (`favicon.svg`, `favicon.png`, `apple-touch-icon.png`)
 - `session/` with `session.json` and the NDJSON files, when collected
-- `evidence.json`, a manifest: `subject`, `verdict`, `kind`, `projectName`, `agentName`, `url`, `buildId`, `images`, `firstImage`, `videos`, `report` (length), and `session` (id, platform, status, device, runtime, durationMs, bootMs, counts, dashboardUrl). The `index` command and bots read this instead of the HTML.
+- `evidence.json`, a manifest: `subject`, `verdict`, `kind`, `projectName`, `agentName`, `url`, `buildId`, `images`, `firstImage`, `videos`, `report` (length), and `session` (id, name, tags, platform, status, device, runtime, durationMs, bootMs, counts, dashboardUrl). The `index` command and bots read this instead of the HTML.
 
 The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each screenshot that followed a tap shows a ring at the tap's position. argent reports taps as a fraction of the screen. agent-device reports points, which the page maps onto the image: at the default 1x capture the image's pixel size is the point size, and when the screenshot was taken with `--scale`, the collector keeps that flag (`scale` on the timeline entry) and the page divides by it. In the timeline, an input step links to the screenshot that followed it, before the next input. When the session has a recording, the page embeds it under "Recording" with `preload="none"`, so nothing downloads until play; the hero shows a "Watch the run" button, and every time in the timeline plays the recording from that moment. The performance charts mark taps (dashed) and the app launch (solid), and hovering or touching a chart shows the value at that moment plus the agent's step within 2.5 s of it. A banner above the verdict says when the session errored or was still running at collection time.
 
@@ -205,13 +205,13 @@ The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each scr
 
 | Field | Content |
 | --- | --- |
-| `id`, `name`, `platform`, `type`, `status` | Session identity. `type` is the controller: `agent-device`, `argent`, `appium` |
+| `id`, `name`, `tags`, `platform`, `type`, `status` | Session identity. `name` and `tags` come from `simulator:start --name` and `--tag` or a rename on expo.dev. `type` is the controller: `agent-device`, `argent`, `appium` |
 | `createdAt`, `startedAt`, `finishedAt`, `bootMs`, `durationMs` | Timing |
 | `device` | `name`, `runtime`, `udid`, `hostCores` |
 | `dashboardUrl` | The session on expo.dev |
 | `recording` | `url`, `bytes`, `width`, `height`, `firstFrameAt`. Linked, never copied |
 | `anchorIso` | The instant timeline offsets count from: the recording's first frame, else session start |
-| `metrics.samples[]` | One sample per second: `t`, `cpu`, `memMB`, `netIn`, `netOut`, `app` |
+| `metrics.samples[]` | One sample per second: `t`, `cpu`, `memMB`, `netIn`, `netOut`, `app`. `null` on Android, which uploads no metrics |
 | `metrics.summary` | Peak and average CPU and memory over the samples where the app was running |
 | `timeline[]` | One entry per device command: `ts`, `offsetMs`, `kind`, `tool`, `label`, `outcome`, `durationMs`, tap coordinates when known, `screenshotIndex` on captures |
 | `counts` | `operations`, `taps`, `screenshots`, `failed`, `describes` |

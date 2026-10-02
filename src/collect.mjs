@@ -466,10 +466,15 @@ export async function collectSession({
     }
     const arts = Array.isArray(session?.artifacts) ? session.artifacts : [];
     const have = (t) => arts.some((a) => artType(a) === t);
-    if (have("session-events") && have("performance-metrics")) break;
+    // Android sessions upload no performance metrics (observed 2026-10-02 on
+    // five stopped sessions, agent-device and argent alike), so the events
+    // alone finalize an Android session. Waiting for metrics there burned the
+    // whole budget on every run.
+    const wantMetrics = session?.platform !== "ANDROID";
+    if (have("session-events") && (!wantMetrics || have("performance-metrics"))) break;
     if (attempt < maxAttempts) {
       note(
-        `artifacts not finalized yet (${arts.length} so far, events=${have("session-events")}, metrics=${have("performance-metrics")}); waiting ${Math.round(pollMs / 1000)} s...`,
+        `artifacts not finalized yet (${arts.length} so far, events=${have("session-events")}${wantMetrics ? `, metrics=${have("performance-metrics")}` : ""}); waiting ${Math.round(pollMs / 1000)} s...`,
       );
       await sleep(pollMs);
     }

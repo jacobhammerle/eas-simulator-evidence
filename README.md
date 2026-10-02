@@ -1,8 +1,8 @@
 <h1 align="center">eas-simulator-evidence</h1>
 
 <p align="center">
-  Turn an <a href="https://docs.expo.dev/eas/simulator/">EAS Simulator</a> session into a shareable evidence site.<br>
-  One static page with the verdict, screenshots, every device command, and the performance charts to help you easily consume what happened.
+  Proof of what happened on an <a href="https://docs.expo.dev/preview/eas-simulator/introduction/">EAS Simulator</a> run, as one page anyone can open.<br>
+  The verdict, the screenshots, every tap, the performance charts, and the recording. Static, shareable, no login.
 </p>
 
 <p align="center">
@@ -12,16 +12,28 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshot-desktop.png" alt="An evidence page: a PASS verdict, the run facts, the agent's report, three screenshots with the taps marked, and the action timeline" width="800">
+  <a href="https://employee-onboarding--evidence-demo.expo.app"><img src="docs/screenshot.png" alt="A whole evidence page: the PASS verdict and run facts, the agent's report, three screenshots with the taps marked, the action timeline, the CPU, memory, and network charts, the recording, and the raw data" width="800"></a>
+</p>
+
+<p align="center">
+  <a href="https://employee-onboarding--evidence-demo.expo.app"><strong>Open the live page</strong></a> · a real run, hosted on EAS Hosting
 </p>
 
 <br>
 
-I built this because I kept running my app on EAS Simulator, from an agent or a script, and had nothing to show for it afterwards except a folder of screenshots. Now the run ends with one page I can drop into a PR. It doesn't care what drove the device or where you host it. The one thing it needs is that the run happened on EAS Simulator.
+An agent or a script drives your app on an EAS Simulator. When the session ends, this tool turns it into one static page: the verdict, the screenshots with the taps marked, every device command with its timing, CPU and memory, and the session recording. Put the link in the pull request. Reviewers open it in a browser, on any OS, with no Expo account.
 
-## Try it in one minute
+## Why add it
 
-You don't need a simulator or an Expo account for this part. There's a real run checked into the repo.
+- **Proof instead of claims.** An agent says the fix works. The page shows the screens, the taps, and the recording that back it up.
+- **One link for review.** The PR comment carries the verdict, the thumbnails, and the link. Nobody needs a Mac or a simulator to check the work.
+- **Any driver.** agent-device, argent, Appium, Maestro, or a shell script. The tool reads the session, not the driver.
+- **Built for CI.** The exit code follows the verdict, there is a JUnit file, a ready PR comment, and a GitHub Action.
+- **Nothing to install, nothing to run.** Zero dependencies. The output is a folder of static files. Put it on EAS Hosting, GitHub Pages, S3, or keep it as a CI artifact.
+
+## Give it a try
+
+No simulator and no Expo account needed. The run behind the [live page](https://employee-onboarding--evidence-demo.expo.app) is in the repo.
 
 ```sh
 git clone https://github.com/jacobhammerle/eas-simulator-evidence
@@ -31,65 +43,56 @@ npm run demo
 
 ## What you get
 
-- **The verdict** up top, as a pill and a headline. There are six:
-  - `PASS`: it did what it was supposed to. Green.
-  - `FAIL`: it didn't. Red, and the screenshot the verdict points at gets tagged.
-  - `REPLICATED`: the bug you were chasing showed up. Amber, since the run itself was fine.
-  - `CONFIRMED`: same thing as replicated, some agents just phrase it that way. Amber.
-  - `NOT-REPLICATED`: the bug didn't show up. Green.
-  - `INCONCLUSIVE`: couldn't tell. Grey.
-- **Screenshots** in the order they were taken, with a full-screen viewer and a ring where the tap landed.
-- **What actually happened on the device.** Every tap, swipe, and screen read, with timing, straight from the session. A tap links to the screenshot it caused, and clicking a time plays the recording from right there.
-- **Performance.** CPU, memory, and network for the whole run, with the taps and the app launch marked. Hover to see the numbers and what was going on at that second.
-- **The report** the agent wrote, rendered from Markdown. If it names a screenshot, that one opens in the viewer.
-- **A "Try this build" button** that spins up the same build in a fresh simulator session on expo.dev.
-- **The screen recording**, right on the page. It doesn't download a thing until you hit play. The raw data is down there too.
+- **The verdict** as a colored pill and a headline: `PASS`, `FAIL`, `REPLICATED`, `CONFIRMED`, `NOT-REPLICATED`, or `INCONCLUSIVE`.
+- **Screenshots** in capture order, with a ring where the tap landed and a full-screen viewer.
+- **The timeline.** Every tap, swipe, and screen read with timing. A tap links to its screenshot. A time plays the recording from that moment.
+- **Performance.** CPU, memory, and network for the whole run, with the taps and the app launch marked.
+- **The agent's report**, rendered from Markdown.
+- **The recording**, playable on the page. It loads nothing until you press play.
+- **A "Try this build" button** that opens the same build in a new simulator session on expo.dev.
 
-It's one `index.html` and its assets. Nothing comes from a CDN, it opens straight from `file://`, and it holds up on a phone, in light or dark, whether you've got three screenshots or fifty. Paste the link in Slack or a PR and the preview shows the verdict and the first screenshot.
-
-<p align="center">
-  <img src="docs/screenshot-phone.png" alt="The same page on a phone" width="300">
-</p>
+It is one `index.html` and its assets. It opens from `file://`, works on a phone, and follows light or dark mode.
 
 ## How it works
 
-You give it three things: a folder of screenshots in the order you took them (`1-home.png`, `2-settings.png`, and so on), a subject like `PR #12`, and a verdict line like `PASS: the checkout flow completed`. It pulls the rest out of the session.
+Three inputs: a folder of screenshots, a subject, and a verdict line. The tool gets everything else from the session.
+
+1. **Run the app** on an EAS Simulator. Save screenshots in order: `1-home.png`, `2-settings.png`, and so on.
+2. **Write the verdict.** One line, like `PASS: the home screen rendered`. The lines after it become the report.
+3. **Run the tool.** It stops the session, pulls the session data, builds the page, and deploys it.
 
 ```sh
-# 1. Start a cloud simulator with your build installed
+# 1. Start a cloud simulator with your build installed, then drive it your way
 npx eas-cli@latest simulator:start --platform ios --type agent-device \
   --build-id "$BUILD_ID" --non-interactive --name "PR #12 evidence"
-
-# 2. Drive the app your way. Save screenshots into evidence/. Decide on a verdict.
 npx eas-cli@latest simulator:exec npx agent-device@latest screenshot evidence/1-home.png --platform ios
+
+# 2. Write the verdict
 echo "PASS: the home screen rendered" > verdict.txt
 
-# 3. Stop the session, collect its data, build the site into evidence/site/, deploy it
+# 3. Stop, collect, build, deploy. Prints the URL; save it as URL for step 4.
 npx eas-simulator-evidence@latest run evidence --stop --subject "PR #12" \
   --verdict-file verdict.txt --build-id "$BUILD_ID" --deploy-alias pr-12-evidence
 
-# 4. Post it where people look
+# 4. Post it on the pull request
 npx eas-simulator-evidence@latest comment evidence "$URL" --verdict-file verdict.txt | gh pr comment 12 --body-file -
 ```
 
-Step 2 is up to you. I use an agent, but a Maestro flow, Appium, or a plain shell script all work. If nothing saved a screenshot, `run --screenshots` grabs the session's own captures. Add `--fail-on fail` and the command exits 3 on a FAIL, after the site is up, so your CI job goes red without any extra scripting.
+`--screenshots` uses the session's own captures when nothing saved any. `--fail-on fail` exits 3 on a FAIL, after the site is up, so the CI job goes red.
 
 ## In CI
 
-I got tired of writing the same workflow over and over, so `init` drops one into your project:
+A CI job does the same four steps as above. The runner never needs macOS: the simulator runs on EAS, and the job only sends commands. The job needs two things: `EXPO_TOKEN` as a secret, and the id of an EAS build to install.
+
+**The quick way.** Copy a complete workflow into your project and edit the "drive the app" step:
 
 ```sh
 npx eas-simulator-evidence@latest init github-actions   # or: eas-workflows, gitlab-ci, local
 ```
 
-| Recipe | What it does |
-| --- | --- |
-| [github-actions.yml](recipes/github-actions.yml) | Evidence on every pull request, published to GitHub Pages, with a PR comment |
-| [eas-workflows.yml](recipes/eas-workflows.yml) | Evidence on every pull request, as an EAS Workflow, on EAS Hosting |
-| [gitlab-ci.yml](recipes/gitlab-ci.yml) | Evidence on every merge request, kept as a job artifact or on GitLab Pages |
-| [local.sh](recipes/local.sh) | The whole loop on your machine |
+The copied workflow starts the simulator, drives the app, builds the page, publishes it, and comments on the pull request. See [github-actions.yml](recipes/github-actions.yml), [eas-workflows.yml](recipes/eas-workflows.yml), [gitlab-ci.yml](recipes/gitlab-ci.yml), or [local.sh](recipes/local.sh).
 
-It's also a GitHub Action. Once your run has saved its screenshots:
+**Already have a workflow?** Add the GitHub Action after the step that drives the app and saves the screenshots. It stops the session, builds the page, deploys it, and fails the job on a FAIL verdict:
 
 ```yaml
 - uses: jacobhammerle/eas-simulator-evidence@v0
@@ -97,29 +100,18 @@ It's also a GitHub Action. Once your run has saved its screenshots:
   with:
     subject: PR #${{ github.event.pull_request.number }}
     verdict-file: verdict.txt
-    build-id: ${{ env.BUILD_ID }}
+    stop: true
     deploy-alias: pr-${{ github.event.pull_request.number }}-evidence
     fail-on: fail
   env:
     EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 ```
 
-You get `url`, `site-dir`, `kind`, and `verdict` back as outputs. Skip `deploy-alias` and upload `site-dir` wherever you like.
+The step outputs `url`, `kind`, `verdict`, and `site-dir`. Use `url` in a PR comment, or upload `site-dir` to another host instead of setting `deploy-alias`.
 
 ## Host it anywhere
 
-It's just a folder of static files with relative paths, so `evidence/site/` can go pretty much anywhere:
-
-| Host | How |
-| --- | --- |
-| EAS Hosting | `run --deploy-alias pr-12-evidence`, or `deploy evidence --alias pr-12-evidence` |
-| GitHub Pages | `actions/upload-pages-artifact` with `path: evidence/site`, then `actions/deploy-pages` |
-| GitLab Pages | Copy it to `public/` in a `pages` job |
-| S3, GCS, R2 | `aws s3 sync evidence/site s3://my-bucket/pr-12/` |
-| Netlify, Vercel, Cloudflare Pages | Point the deploy at `evidence/site` |
-| No host | Upload the folder as a CI artifact |
-
-If you know the final URL, pass `--url` so link previews pick up the first screenshot. With `--deploy-alias` it already knows. Keeping a bunch of runs on one host? Give each its own folder and run `index` to get a landing page over all of them.
+The site is a folder of static files. `run --deploy-alias` puts it on EAS Hosting. Or upload `evidence/site` to GitHub Pages, GitLab Pages, S3, Netlify, Vercel, or Cloudflare Pages, or keep it as a CI artifact. Pass `--url` when you know the final address, so link previews work. For many runs on one host, run `index` for a landing page over all of them.
 
 ## Commands
 
@@ -137,20 +129,20 @@ eas-simulator-evidence sweep   [--older-than 30]                               s
 eas-simulator-evidence init    <target>                                        copy a CI recipe into the project
 ```
 
-Every command has `--help`. The full reference, the verdict grammar, the session data schema, and the programmatic API are all in [docs/reference.md](docs/reference.md).
+Every command has `--help`. The full reference, the verdict grammar, the session data schema, and the programmatic API are in [docs/reference.md](docs/reference.md).
 
 ## Requirements
 
-- Node 20 or newer. Run it with `npx eas-simulator-evidence@<version>` or add it as a devDependency. If your pipeline has more than one job, each job that runs the tool needs its own install step.
-- An Expo account with EAS Simulator access, for `collect`, `deploy`, and `sweep`. In CI, set `EXPO_TOKEN` to a personal access token. Nothing else in here touches the network.
+- Node 20 or newer. Run it with `npx eas-simulator-evidence@<version>` or add it as a devDependency.
+- An Expo account with EAS Simulator access, for `collect`, `deploy`, and `sweep`. In CI, set `EXPO_TOKEN` to a personal access token. Nothing else touches the network.
 
-## Using it from an agent
+## For agents
 
-If you're on Claude Code, Cursor, or anything else that reads skills, point it at [skills/eas-simulator-evidence/SKILL.md](skills/eas-simulator-evidence/SKILL.md). It covers how to name screenshots, how to write the verdict line, and how to run the tool.
+Claude Code, Cursor, and other tools that read skills can use [skills/eas-simulator-evidence/SKILL.md](skills/eas-simulator-evidence/SKILL.md). It covers screenshot naming, the verdict line, and the command order.
 
 ## Contributing
 
-Issues and PRs are welcome. Have a look at [CONTRIBUTING.md](CONTRIBUTING.md) and the [changelog](CHANGELOG.md) first.
+Issues and PRs are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [changelog](CHANGELOG.md).
 
 ## License
 
