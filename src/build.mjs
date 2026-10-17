@@ -771,6 +771,8 @@ ${rows.join("\n")}
     rawCards.push(["./session/events.ndjson", "list", "events.ndjson", false]);
   if (safeUrl(session.recording?.url))
     rawCards.push([session.recording.url, "video", "recording.mp4 ↗", true]);
+  if (safeUrl(session.logs?.url))
+    rawCards.push([session.logs.url, "terminal", `${session.logs.file || "app-logs.ndjson"} ↗`, true]);
   rawHtml = `<section id="data">
   ${sectionHead("Raw data", `<code class="kind">session ${esc(session.id.slice(0, 8))}</code>`)}
   <div class="raw">

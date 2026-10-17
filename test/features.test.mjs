@@ -156,6 +156,20 @@ test("an unnamed, untagged session shows no name or tags facts", () => {
   assert.deepEqual(JSON.parse(readFileSync(r2.manifest, "utf8")).session.tags, []);
 });
 
+test("the raw data section links the session's app logs when there are any", () => {
+  const withLogs = { ...readFixtureSession(), logs: { url: "https://example.test/app-logs.ndjson", bytes: 10, file: "app-logs.ndjson" } };
+  const dir = makeEvidence({ images: ["1-home.png"], session: withLogs });
+  const out = fresh("logs");
+  buildSite({ dir, subject: "PR #1", verdict: "PASS: ok", out, log: quiet });
+  assert.match(html(out), /href="https:\/\/example\.test\/app-logs\.ndjson"[^>]*>[\s\S]*?app-logs\.ndjson ↗/);
+  const { h } = build();
+  assert.doesNotMatch(h, /app-logs\.ndjson/);
+  const unsafe = { ...readFixtureSession(), logs: { url: "javascript:alert(1)", bytes: 1, file: "x" } };
+  const out2 = fresh("logs-unsafe");
+  buildSite({ dir: makeEvidence({ images: ["1-home.png"], session: unsafe }), subject: "PR #1", verdict: "PASS: ok", out: out2, log: quiet });
+  assert.doesNotMatch(html(out2), /javascript:/);
+});
+
 test("evidence.json describes the run for tooling", () => {
   const { out, r } = build({ projectName: "My App", agentName: "bot", buildId: "0123456789abcdef0123456789abcdef", url: "https://e.com/x" });
   assert.equal(r.manifest, join(out, "evidence.json"));

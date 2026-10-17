@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-17
+
+### Added
+
+- The simulator's app log artifact (`simulator-log`, attached by eas-cli 24.9 and newer) is kept in `session.json` as `logs` and linked from the page's raw data section.
+
+### Changed
+
+- The pinned eas-cli is 25.1.1 (was 24.8.0). Checked against it: `simulator:get`, `simulator:list`, `simulator:stop`, and `deploy` keep their flags and JSON shapes, and a full `collect` and `build` of sessions recorded on October 16 (iOS and Android) produce the same page. New session artifacts (`session-preview`, `simulator-log`) do not disturb screenshot selection.
+- CI also runs on Node 26, which Expo SDK 58 supports. The README says to use Node 22 or newer in CI.
+
 ## [0.2.2] - 2026-10-02
 
 ### Added

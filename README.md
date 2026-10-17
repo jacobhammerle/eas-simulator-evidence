@@ -133,7 +133,7 @@ Every command has `--help`. The full reference, the verdict grammar, the session
 
 ## Requirements
 
-- Node 20 or newer. Run it with `npx eas-simulator-evidence@<version>` or add it as a devDependency.
+- Node 20 or newer for the tool itself. Expo SDK 58 tooling and eas-cli want Node 22 or newer, so use 22 or newer in CI.
 - An Expo account with EAS Simulator access, for `collect`, `deploy`, and `sweep`. In CI, set `EXPO_TOKEN` to a personal access token. Nothing else touches the network.
 
 ## For agents

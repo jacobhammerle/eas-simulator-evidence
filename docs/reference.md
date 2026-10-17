@@ -17,7 +17,7 @@ It never fails your pipeline. Without a session id or with a session it cannot r
 | `--dotenv <path>` | Dotenv file to read the session id from |
 | `--extra k=v` | Extra fact stored in `session.json`. Repeatable |
 | `--wait <seconds>` | Max wait for the artifacts. Default 180 |
-| `--eas-cli-version <v>` | Version of eas-cli to run through `npx`. Default: `EAS_CLI_VERSION`, then the pinned release (`24.8.0`) |
+| `--eas-cli-version <v>` | Version of eas-cli to run through `npx`. Default: `EAS_CLI_VERSION`, then the pinned release (`25.1.1`) |
 | `--screenshots` | Download the session's own screenshots into `<dir>` as `1-capture.png`, `2-capture.png`, ... in capture order. Only when `<dir>` holds no images yet |
 | `--json` | Print a JSON summary to stdout |
 
@@ -210,6 +210,7 @@ The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each scr
 | `device` | `name`, `runtime`, `udid`, `hostCores` |
 | `dashboardUrl` | The session on expo.dev |
 | `recording` | `url`, `bytes`, `width`, `height`, `firstFrameAt`. Linked, never copied |
+| `logs` | `url`, `bytes`, `file` of the simulator's app log artifact (`simulator-log`, eas-cli 24.9 and newer), or `null`. Linked from the page's raw data, never copied |
 | `anchorIso` | The instant timeline offsets count from: the recording's first frame, else session start |
 | `metrics.samples[]` | One sample per second: `t`, `cpu`, `memMB`, `netIn`, `netOut`, `app`. `null` on Android, which uploads no metrics |
 | `metrics.summary` | Peak and average CPU and memory over the samples where the app was running |

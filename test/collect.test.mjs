@@ -155,6 +155,14 @@ test("metrics: samples, summary, anchors, and the app-only filter", () => {
   assert.deepEqual(m3.summary, { samples: 1, appSamples: 0, cpuMax: null, cpuAvg: null, memMaxMB: null, memAvgMB: null, netInMaxBps: null, netInTotalBytes: 0 });
 });
 
+test("normalizeSession keeps the simulator app logs artifact as a link", () => {
+  const logArt = { filename: "app-logs.ndjson", downloadUrl: "https://example.test/app-logs.ndjson", fileSizeBytes: 4171008, metadata: { __eas_type: "simulator-log", source: "serve-sim/logs" } };
+  const s = normalizeSession({ session: withArts([...artifacts(), logArt]), collectedAt: "c" });
+  assert.deepEqual(s.logs, { url: "https://example.test/app-logs.ndjson", bytes: 4171008, file: "app-logs.ndjson" });
+  assert.equal(s.uploadedScreenshots.length, 3, "the log file is not a screenshot");
+  assert.equal(normalizeSession({ session: raw(), collectedAt: "c" }).logs, null);
+});
+
 test("normalizeSession with a bare session: nulls, not crashes", () => {
   const s = normalizeSession({ session: { id: "x" }, collectedAt: "c" });
   assert.equal(s.id, "x");
@@ -164,6 +172,7 @@ test("normalizeSession with a bare session: nulls, not crashes", () => {
   assert.equal(s.bootMs, null);
   assert.equal(s.durationMs, null);
   assert.equal(s.recording, null);
+  assert.equal(s.logs, null);
   assert.deepEqual(s.device, { name: null, udid: null, runtime: null, hostCores: null });
   assert.deepEqual(s.raw, { metrics: null, events: null });
   assert.deepEqual(s.uploadedScreenshots, []);

@@ -80,6 +80,8 @@ export function runEasSimulatorGet(sessionId, easCliVersion = DEFAULT_EAS_CLI_VE
 }
 
 const artType = (a) => a?.metadata?.__eas_type || "";
+// A platform artifact as a link: never copied, always fetched from expo.dev.
+const artLink = (a) => ({ url: a.downloadUrl || null, bytes: num(a.fileSizeBytes) });
 
 export const ndjson = (text) =>
   String(text || "")
@@ -308,6 +310,8 @@ export function normalizeSession({
   const artifacts = Array.isArray(session.artifacts) ? session.artifacts : [];
   const metricsArt = artifacts.find((a) => artType(a) === "performance-metrics");
   const recordingArt = artifacts.find((a) => artType(a) === "screen-recording");
+  // App logs from the simulator (eas-cli 24.9+ attaches them as "simulator-log").
+  const logsArt = artifacts.find((a) => artType(a) === "simulator-log");
   const shotArts = artifacts.filter(
     (a) => /\.(png|jpe?g)$/i.test(a?.filename || "") && !artType(a),
   );
@@ -360,13 +364,13 @@ export function normalizeSession({
     },
     recording: recordingArt
       ? {
-          url: recordingArt.downloadUrl || null,
-          bytes: num(recordingArt.fileSizeBytes),
+          ...artLink(recordingArt),
           width: num(recordingArt.metadata?.width),
           height: num(recordingArt.metadata?.height),
           firstFrameAt: recordingArt.metadata?.firstFrameAt || null,
         }
       : null,
+    logs: logsArt ? { ...artLink(logsArt), file: logsArt.filename || null } : null,
     anchorIso,
     metrics,
     timeline,
