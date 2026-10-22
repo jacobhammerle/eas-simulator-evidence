@@ -12,11 +12,11 @@
 </p>
 
 <p align="center">
-  <a href="https://employee-onboarding--evidence-demo.expo.app"><img src="docs/screenshot.png" alt="A whole evidence page: the PASS verdict and run facts, the agent's report, three screenshots with the taps marked, the action timeline, the CPU, memory, and network charts, the recording, and the raw data" width="800"></a>
+  <a href="https://simple-todo--evidence-demo.expo.app"><img src="docs/screenshot.png" alt="A whole evidence page: the PASS verdict and run facts, the agent's report, five screenshots with the taps marked, the action timeline, the CPU, memory, and network charts, the recording, and the raw data" width="800"></a>
 </p>
 
 <p align="center">
-  <a href="https://employee-onboarding--evidence-demo.expo.app"><strong>Open the live page</strong></a> · a real run, hosted on EAS Hosting
+  <a href="https://simple-todo--evidence-demo.expo.app"><strong>Open the live page</strong></a> · the verification run from <a href="https://github.com/jacobhammerle/todo-app/pull/7">a real pull request</a>, hosted on EAS Hosting
 </p>
 
 <br>
@@ -33,7 +33,7 @@ An agent or a script drives your app on an EAS Simulator. When the session ends,
 
 ## Give it a try
 
-No simulator and no Expo account needed. The run behind the [live page](https://employee-onboarding--evidence-demo.expo.app) is in the repo.
+No simulator and no Expo account needed. A real run is checked into the repo, so you can build a page locally. The [live page](https://simple-todo--evidence-demo.expo.app) comes from [todo-app](https://github.com/jacobhammerle/todo-app), an Expo SDK 58 app whose pull requests are verified by an agent on EAS Simulator.
 
 ```sh
 git clone https://github.com/jacobhammerle/eas-simulator-evidence

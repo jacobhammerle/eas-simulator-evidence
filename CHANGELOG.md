@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- README: the live demo page and the screenshot now come from the agent verification run on [todo-app pull request 7](https://github.com/jacobhammerle/todo-app/pull/7), an Expo SDK 58 app, instead of the checked-in fixture.
+
 ## [0.2.3] - 2026-10-17
 
 ### Added
