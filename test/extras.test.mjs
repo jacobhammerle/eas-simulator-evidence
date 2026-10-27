@@ -44,8 +44,8 @@ test("sweep stops only matching sessions older than the limit", async () => {
   assert.deepEqual(r.kept, ["young-preview"]);
   assert.deepEqual(r.candidates, ["old-preview", "young-preview", "caps"]);
   assert.equal(r.listed, 4);
-  assert.deepEqual(calls[0].slice(0, 7), ["simulator:list", "--status", "new", "--status", "in-progress", "--limit", "100"]);
-  assert.deepEqual(calls[0].slice(7), ["--type", "web-preview-only"]);
+  assert.deepEqual(calls[0].slice(0, 11), ["simulator:list", "--status", "new", "--status", "queued", "--status", "starting", "--status", "in-progress", "--limit", "100"]);
+  assert.deepEqual(calls[0].slice(11), ["--type", "web-preview-only"]);
   assert.deepEqual(calls.filter((c) => c[0] === "simulator:stop").map((c) => c[2]), ["old-preview", "caps"]);
   assert.ok(rec.logs.some((l) => /stopped old-preview/.test(l)));
   assert.ok(rec.logs.some((l) => /keep\s+young-preview/.test(l)));

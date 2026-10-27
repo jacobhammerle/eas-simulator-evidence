@@ -1,11 +1,11 @@
 ---
 name: eas-simulator-evidence
-description: Turn an EAS Simulator run into a shareable evidence page (verdict, screenshots, the agent's timeline, CPU and memory charts, the recording). Use after driving an app on an EAS cloud simulator, iOS or Android, when the result must be shown to a human, posted on a pull request, or kept as proof. Not for local simulators.
+description: Turn an Expo Simulators run into a shareable evidence page (verdict, screenshots, the agent's timeline, CPU and memory charts, the recording). Use after driving an app on Expo Simulators, iOS or Android, when the result must be shown to a human, posted on a pull request, or kept as proof. Not for local simulators.
 ---
 
 # eas-simulator-evidence
 
-Builds a static evidence site from an EAS Simulator run. Runs with `npx`, needs Node 20+, has no dependencies.
+Builds a static evidence site from an Expo Simulators run. Runs with `npx`, needs Node 20+, has no dependencies. The app can be anything the simulator runs: Expo, React Native, Swift, or Kotlin. Without an `app.json` in the project, pass `--name`, `--owner`, and `--slug`.
 
 ## The contract
 
@@ -52,7 +52,7 @@ npx eas-simulator-evidence@latest comment evidence "$URL" --verdict-file verdict
 
 ## Driving the app so the evidence is right
 
-Lessons from real runs with agent-device on EAS Simulator:
+Lessons from real runs with agent-device on Expo Simulators:
 
 - **`open <bundleId>` first, always.** Even when `simulator:start --build-id` installed and launched the app, `screenshot` and `snapshot` fail with `SESSION_NOT_FOUND` until you run `open`.
 - **Re-read the tree before every tap.** `snapshot -i` refs (`@e8`) are numbered per screen. A ref from the Home tree points at something else on the Shop screen. A tap with a stale ref lands on the wrong control and the run is wrong without any error. Pattern: `snapshot -i` → find the ref by its label → `press` → wait → `screenshot` → `snapshot -i` again.
@@ -66,7 +66,7 @@ Lessons from real runs with agent-device on EAS Simulator:
 
 ## Android
 
-The same commands work with `--platform android`. What differs on the page:
+The same commands work with `--platform android`. Pick the emulator image with `--system-image` on `simulator:start` when the default is not the one the run needs. What differs on the page:
 
 - **No performance section.** Android sessions upload no CPU or memory metrics. The page has no "Performance" section and `metrics` is null in `session.json`. This is expected, not a failed collect. The collector does not wait for metrics on Android.
 - **No "Try this build" button.** expo.dev create-session links open an iOS preview only, so the page leaves the button out.
@@ -80,6 +80,10 @@ The same commands work with `--platform android`. What differs on the page:
 - Use `--json` when another program reads the result. `build` and `run` print one line: `{ siteDir, images, videos, session, kind, verdict, report, url, durationMs, manifest }`. Everything else goes to stderr.
 - In CI, add `--fail-on fail` (or `not-pass`) so the job fails on the verdict, after the site is built and deployed. Add `--junit path.xml` when the CI shows JUnit results.
 - Do not open the `webPreviewUrl` on the device and do not embed it on the page. It is for a human's browser.
+
+## Worked examples
+
+[todo-app](https://github.com/jacobhammerle/todo-app) is a public Expo app whose EAS Workflows use this tool for every verdict: issue replication, pull-request verification, and a QA swarm on iOS and Android. Its `.eas/workflows/` and `scripts/agent/` folders show the exact commands in context.
 
 ## Reading a page
 

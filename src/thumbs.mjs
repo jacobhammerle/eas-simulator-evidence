@@ -6,6 +6,7 @@
 // links to <siteUrl>/<file>. Same natural sort and captions as the site.
 // GitHub and GitLab both render this HTML inside a Markdown comment.
 import { existsSync, readdirSync } from "node:fs";
+import { esc } from "./markdown.mjs";
 
 // "2-settings-toggle.png" -> "Settings toggle"
 export const caption = (f) => {
@@ -17,11 +18,6 @@ export const caption = (f) => {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : f;
 };
 
-const esc = (s) =>
-  String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;");
 
 export function listScreenshots(dir) {
   if (!dir || !existsSync(dir)) return [];

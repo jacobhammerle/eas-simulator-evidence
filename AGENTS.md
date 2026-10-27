@@ -8,7 +8,7 @@ file points at it rather than repeating it.
 
 There are two, and they use different files.
 
-**Using the tool on a real run.** Driving an app on an EAS Simulator and turning
+**Using the tool on a real run.** Driving an app on Expo Simulators and turning
 that run into an evidence page. Read
 [skills/eas-simulator-evidence/SKILL.md](skills/eas-simulator-evidence/SKILL.md)
 and stop there. It has the screenshot naming, the verdict grammar, the command
@@ -40,8 +40,8 @@ The layout table is in [CONTRIBUTING.md](CONTRIBUTING.md#development).
   Escape it.
 - **Tests never touch the network or `eas-cli`.** The three modules that shell
   out take injection points for exactly this reason: `getSession`,
-  `stopSession`, and `fetchText` in [src/collect.mjs](src/collect.mjs), and
-  `exec` in [src/deploy.mjs](src/deploy.mjs) and [src/sweep.mjs](src/sweep.mjs).
+  `stopSession`, `fetchText`, and `fetchBytes` in [src/collect.mjs](src/collect.mjs),
+  `exec` in [src/deploy.mjs](src/deploy.mjs), and `eas` in [src/sweep.mjs](src/sweep.mjs).
   Pass a fake. The only `fetch` calls in the suite hit the tool's own localhost
   server.
 - **The eas-cli version is pinned in one place.** `DEFAULT_EAS_CLI_VERSION` in
@@ -57,7 +57,7 @@ The layout table is in [CONTRIBUTING.md](CONTRIBUTING.md#development).
 
 ## Before you say you are done
 
-1. `npm test` passes. The suite runs on Node 20, 22, and 24, plus macOS and
+1. `npm test` passes. The suite runs on Node 20, 22, 24, and 26, plus macOS and
    Windows, so a local pass is necessary and not sufficient.
 2. A test covers what you changed. Renderer tests build the fixture and check
    the markup. Collector tests replay raw artifacts. CLI tests run the binary.

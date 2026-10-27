@@ -17,7 +17,7 @@ import {
 } from "./helpers.mjs";
 
 after(cleanOut);
-const notWindows = { skip: process.platform === "win32" ? "file name not allowed on Windows" : false };
+import { notWindows } from "./helpers.mjs";
 
 const full = () => {
   const out = fresh("full");
@@ -255,6 +255,17 @@ test("build-time buildId and lane override the ones stored at collect time", () 
   assert.doesNotMatch(h, /stored lane/);
 });
 
+test("a subject longer than the platform's name limit is cut, not the preview marker", () => {
+  const out = fresh("long-subject");
+  const subject = "S".repeat(300);
+  buildSite({ dir: fixture, subject, verdict: "PASS: ok", out, projectName: "App", expoOwner: "o", expoSlug: "s", buildId: "0123456789abcdef0123456789abcdef", log: quiet });
+  const m = html(out).match(/simulator-sessions\/create\?buildId=[^&]+&amp;name=([^"]+)"/);
+  assert.ok(m);
+  const name = decodeURIComponent(m[1].replace(/\+/g, " "));
+  assert.ok(name.length <= 255, String(name.length));
+  assert.match(name, / · evidence-site preview$/);
+});
+
 test("the create-session link names the session after the subject with the preview marker", () => {
   const { h } = full();
   const m = h.match(/simulator-sessions\/create\?buildId=[^&]+&amp;name=([^"]+)"/);
@@ -278,7 +289,7 @@ test("Android sessions say emulator", () => {
   const dir = makeEvidence({ images: ["1-a.png"], session: s });
   const out = fresh("android");
   buildSite({ dir, subject: "x", verdict: "PASS: x", out, log: quiet });
-  assert.match(html(out), /EAS cloud emulator/);
+  assert.match(html(out), /cloud emulator from Expo Simulators/);
 });
 
 test("the agent report renders as Markdown, short ones open, long ones folded", () => {
@@ -315,7 +326,7 @@ test("the agent report renders as Markdown, short ones open, long ones folded", 
   assert.doesNotMatch(html(out), /<section id="report">/);
 });
 
-test("agent clips are embedded and downloadable; the platform recording is only linked", () => {
+test("agent clips are embedded and downloadable", () => {
   const dir = makeEvidence({ images: ["1-a.png"], videos: ["2-flow.mp4", "3-Login Flow.mov"] });
   const out = fresh("video");
   const r = buildSite({ dir, subject: "x", verdict: "PASS: x", out, log: quiet });

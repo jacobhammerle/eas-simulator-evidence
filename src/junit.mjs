@@ -1,18 +1,13 @@
 // One JUnit test case per run, so any CI shows the verdict in its own UI.
 //
-//   junitXml({ subject, verdict, kind, siteDir, url, durationMs, report })
+//   junitXml({ subject, verdict, siteDir, url, durationMs, report })
 //
 // pass and replicated-as-expected map to a passing case; fail maps to a
 // <failure>; neutral (INCONCLUSIVE) maps to <skipped>, which CI shows
 // without turning the build red.
 import { parseVerdict } from "./verdict.mjs";
+import { esc } from "./markdown.mjs";
 
-const esc = (s) =>
-  String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 
 export function junitXml({
   subject = "run",

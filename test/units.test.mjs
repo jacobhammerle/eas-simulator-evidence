@@ -1,15 +1,15 @@
 // thumbs, config, deploy
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { thumbsHtml, listScreenshots, caption } from "../src/thumbs.mjs";
 import { resolveProject, readAppJson, DEFAULT_EAS_CLI_VERSION } from "../src/config.mjs";
 import { deploySite, parseDeployOutput } from "../src/deploy.mjs";
-import { fixture, fresh, quiet, makeEvidence, cleanOut } from "./helpers.mjs";
+import { fixture, fresh, quiet, makeEvidence, cleanOut, root } from "./helpers.mjs";
 
 after(cleanOut);
-const notWindows = { skip: process.platform === "win32" ? "file name not allowed on Windows" : false };
+import { notWindows } from "./helpers.mjs";
 
 // --- thumbs ------------------------------------------------------------------
 
@@ -112,6 +112,16 @@ test("deploySite passes a relative export dir and the alias to eas-cli", () => {
   assert.equal(call.file, "npx");
   assert.deepEqual(call.args, ["--yes", "eas-cli@24.0.0", "deploy", "--export-dir", join("evidence", "site"), "--non-interactive", "--json", "--alias", "pr-1-evidence"]);
   assert.equal(call.options.cwd, projectDir);
+});
+
+test("no module writes an eas-cli version literal or dist-tag; the reference states the pin", () => {
+  const files = [join(root, "bin", "eas-simulator-evidence.js"), ...readdirSync(join(root, "src")).map((f) => join(root, "src", f))];
+  for (const f of files) {
+    const text = readFileSync(f, "utf8");
+    if (f.endsWith("config.mjs")) continue;
+    assert.doesNotMatch(text, /eas-cli@(\d|latest|next)/, f);
+  }
+  assert.ok(readFileSync(join(root, "docs", "reference.md"), "utf8").includes(`(\`${DEFAULT_EAS_CLI_VERSION}\`)`), "reference.md names the pinned release");
 });
 
 test("the default eas-cli version is a pinned release, not a dist-tag", () => {

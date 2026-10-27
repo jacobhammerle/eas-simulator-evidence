@@ -17,7 +17,7 @@ It never fails your pipeline. Without a session id or with a session it cannot r
 | `--dotenv <path>` | Dotenv file to read the session id from |
 | `--extra k=v` | Extra fact stored in `session.json`. Repeatable |
 | `--wait <seconds>` | Max wait for the artifacts. Default 180 |
-| `--eas-cli-version <v>` | Version of eas-cli to run through `npx`. Default: `EAS_CLI_VERSION`, then the pinned release (`25.1.1`) |
+| `--eas-cli-version <v>` | Version of eas-cli to run through `npx`. Default: `EAS_CLI_VERSION`, then the pinned release (`26.0.0`) |
 | `--screenshots` | Download the session's own screenshots into `<dir>` as `1-capture.png`, `2-capture.png`, ... in capture order. Only when `<dir>` holds no images yet |
 | `--json` | Print a JSON summary to stdout |
 
@@ -61,6 +61,7 @@ Serves `<dir>/site` (or `--out`) on localhost and opens it in the browser, the w
 | `--port <n>` | Port. Default 9323, or a free port when that one is taken |
 | `--host <host>` | Host. Default `127.0.0.1` |
 | `--no-browser` | Print the URL only, for a remote box |
+| `--out <dir>` | The site folder, when it is not `<dir>/site` |
 
 ### deploy
 
@@ -71,6 +72,8 @@ Runs `eas deploy` on `<dir>/site` and prints the stable alias URL. A convenience
 | `--alias <name>` | Stable alias, for example `pr-12-evidence` |
 | `--out <dir>` | The site folder, when it is not `<dir>/site` |
 | `--project-dir <dir>` | Expo project root. Default: the current directory |
+| `--eas-cli-version <v>` | Version of eas-cli to run through `npx`. Default: `EAS_CLI_VERSION`, then the pinned release |
+| `--json` | Print `{ url, aliasUrl, deploymentUrl }` |
 
 ### thumbs
 
@@ -105,7 +108,7 @@ One page over many built sites. Each run is a subfolder of `<dir>` that holds `i
 
 ### sweep
 
-Stops live simulator sessions that the "Try this build" button started once they are older than the limit. Those sessions come from expo.dev create-session links, which cannot set a duration, so they run until stopped. Run this on a schedule with an `EXPO_TOKEN` that can manage sessions. It only touches sessions whose name ends with the suffix, and it never fails the caller.
+Stops live simulator sessions that the "Try this build" button started once they are older than the limit. Those sessions come from expo.dev create-session links, which cannot set a duration, so they run until stopped or until the plan's maximum duration. Run this on a schedule with an `EXPO_TOKEN` that can manage sessions. It only touches sessions whose name ends with the suffix, and it never fails the caller.
 
 | Option | Meaning |
 | --- | --- |
@@ -113,11 +116,12 @@ Stops live simulator sessions that the "Try this build" button started once they
 | `--name-suffix <text>` | Default `evidence-site preview`, the suffix the page puts on those sessions |
 | `--type <type>` | Session type to consider. Default `web-preview-only` |
 | `--dry-run` | List what would be stopped |
-| `--json` | Print `{ listed, candidates, stopped, kept, failed }` |
+| `--eas-cli-version <v>` | Version of eas-cli to run through `npx`. Default: `EAS_CLI_VERSION`, then the pinned release |
+| `--json` | Print `{ listed, candidates, stopped, kept, failed, dryRun }` |
 
 ### init
 
-Copies a recipe into the conventional place and adds `.env.eas-simulator` and `evidence/` to `.gitignore`. It never overwrites a file without `--force`.
+Copies a recipe into the conventional place and adds `.env.eas-simulator` and `evidence/` to `.gitignore`. It never overwrites a file without `--force`. `--project-dir <dir>` picks the project root; the default is the current directory.
 
 | Target | Writes |
 | --- | --- |
@@ -136,7 +140,7 @@ Copies a recipe into the conventional place and adds `.env.eas-simulator` and `e
 
 ## GitHub Action
 
-The repository is also a composite action. It runs the CLI that ships with the tag, so `@v0` is the 0.x line and `@v0.1.0` is one release.
+The repository is also a composite action. It runs the CLI that ships with the tag, so `@v0` is the 0.x line and `@v0.2.3` is one release.
 
 ```yaml
 - uses: jacobhammerle/eas-simulator-evidence@v0
@@ -151,12 +155,12 @@ The repository is also a composite action. It runs the CLI that ships with the t
     EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 ```
 
-Every CLI option has an input of the same name: `report-file`, `session`, `stop`, `agent`, `lane`, `name`, `owner`, `slug`, `url`, `junit`, `fail-on`, and `working-directory` for the Expo project root. Outputs are `url`, `site-dir`, `kind`, and `verdict`; with `fail-on` they are written before the step fails.
+These CLI options have an input of the same name: `report-file`, `session`, `stop`, `agent`, `lane`, `name`, `owner`, `slug`, `url`, `junit`, `fail-on`, and `working-directory` for the Expo project root. Outputs are `url`, `site-dir`, `kind`, and `verdict`; with `fail-on` they are written before the step fails.
 
 ## Running it in CI
 
-- Pin the version: `npx --yes eas-simulator-evidence@<version> ...`, or add it as a devDependency and call `npx eas-simulator-evidence`. A job that calls `npx` without the package installed and without `--yes` stops with "npx canceled due to missing packages"; in a multi-job pipeline every job that runs the tool needs the install step.
-- Any CI works: the runner only sends commands to the cloud simulator. The recipes cover EAS Workflows, GitHub Actions, and GitLab CI; the local script is the same loop for a laptop.
+- The recipes, the README, and the skill use `eas-simulator-evidence@latest` to stay short. In your copy, pin the version: `npx --yes eas-simulator-evidence@<version> ...`, or add it as a devDependency and call `npx eas-simulator-evidence`. A job that calls `npx` without the package installed and without `--yes` stops with "npx canceled due to missing packages"; in a multi-job pipeline every job that runs the tool needs the install step.
+- Any CI works: the runner only sends commands to the cloud simulator. The recipes cover EAS Workflows, GitHub Actions, and GitLab CI; the local script is the same loop for a laptop. For complete, running workflows, see [todo-app](https://github.com/jacobhammerle/todo-app), which uses the tool for issue replication, pull-request verification, and a QA swarm.
 - `--json` prints exactly one line of JSON on stdout and everything else on stderr, so `URL=$(... run ... --json | node -e '...')` is safe.
 - `--fail-on fail` makes the job status follow the verdict; `--junit` puts the verdict in the CI's test report.
 
@@ -195,9 +199,9 @@ Agents do not always write the line cleanly, so every reader normalizes it the s
 - the screenshots and clips, under their own names
 - `colors_and_type.css`, `fonts/`, and the tab icons (`favicon.svg`, `favicon.png`, `apple-touch-icon.png`)
 - `session/` with `session.json` and the NDJSON files, when collected
-- `evidence.json`, a manifest: `subject`, `verdict`, `kind`, `projectName`, `agentName`, `url`, `buildId`, `images`, `firstImage`, `videos`, `report` (length), and `session` (id, name, tags, platform, status, device, runtime, durationMs, bootMs, counts, dashboardUrl). The `index` command and bots read this instead of the HTML.
+- `evidence.json`, a manifest: `schemaVersion`, `generatedAt`, `subject`, `verdict`, `kind`, `projectName`, `agentName`, `url`, `buildId`, `images`, `firstImage`, `videos`, `report` (length), and `session` (id, name, tags, errors, platform, status, device, runtime, durationMs, bootMs, counts, dashboardUrl). The `index` command and bots read this instead of the HTML.
 
-The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each screenshot that followed a tap shows a ring at the tap's position. argent reports taps as a fraction of the screen. agent-device reports points, which the page maps onto the image: at the default 1x capture the image's pixel size is the point size, and when the screenshot was taken with `--scale`, the collector keeps that flag (`scale` on the timeline entry) and the page divides by it. In the timeline, an input step links to the screenshot that followed it, before the next input. When the session has a recording, the page embeds it under "Recording" with `preload="none"`, so nothing downloads until play; the hero shows a "Watch the run" button, and every time in the timeline plays the recording from that moment. The performance charts mark taps (dashed) and the app launch (solid), and hovering or touching a chart shows the value at that moment plus the agent's step within 2.5 s of it. A banner above the verdict says when the session errored or was still running at collection time.
+The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each screenshot that followed a tap shows a ring at the tap's position. argent reports taps as a fraction of the screen. agent-device reports points, which the page maps onto the image: at the default 1x capture the image's pixel size is the point size, and when the screenshot was taken with `--scale`, the collector keeps that flag (`scale` on the timeline entry) and the page divides by it. In the timeline, an input step links to the screenshot that followed it, before the next input. When the session has a recording, the page embeds it under "Recording" with `preload="none"`, so nothing downloads until play; the hero shows a "Watch the run" button, and every time in the timeline plays the recording from that moment. The performance charts mark taps (dashed) and the app launch (solid), and hovering or touching a chart shows the value at that moment plus the agent's step within 2.5 s of it. A banner above the verdict says when the session errored, with the platform's reason when `simulator:get` reported one, or was still running at collection time.
 
 ## Session data
 
@@ -206,18 +210,22 @@ The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each scr
 | Field | Content |
 | --- | --- |
 | `id`, `name`, `tags`, `platform`, `type`, `status` | Session identity. `name` and `tags` come from `simulator:start --name` and `--tag` or a rename on expo.dev. `type` is the controller: `agent-device`, `argent`, `appium` |
+| `errors` | Why the session failed, as `code` and `message` pairs from `simulator:get` (eas-cli 26 and newer). Empty when the session did not error |
 | `createdAt`, `startedAt`, `finishedAt`, `bootMs`, `durationMs` | Timing |
 | `device` | `name`, `runtime`, `udid`, `hostCores` |
 | `dashboardUrl` | The session on expo.dev |
 | `recording` | `url`, `bytes`, `width`, `height`, `firstFrameAt`. Linked, never copied |
 | `logs` | `url`, `bytes`, `file` of the simulator's app log artifact (`simulator-log`, eas-cli 24.9 and newer), or `null`. Linked from the page's raw data, never copied |
 | `anchorIso` | The instant timeline offsets count from: the recording's first frame, else session start |
-| `metrics.samples[]` | One sample per second: `t`, `cpu`, `memMB`, `netIn`, `netOut`, `app`. `null` on Android, which uploads no metrics |
+| `metrics` | `null` on Android, which uploads no metrics. Otherwise `samples` and `summary` |
+| `metrics.samples[]` | One sample per second: `t`, `cpu`, `memMB`, `netIn`, `netOut`, `app` |
 | `metrics.summary` | Peak and average CPU and memory over the samples where the app was running |
 | `timeline[]` | One entry per device command: `ts`, `offsetMs`, `kind`, `tool`, `label`, `outcome`, `durationMs`, tap coordinates when known, `screenshotIndex` on captures |
 | `counts` | `operations`, `taps`, `screenshots`, `failed`, `describes` |
 | `uploadedScreenshots[]` | The screenshots the platform kept, with their artifact URLs |
 | `extra` | The `--extra` pairs you passed |
+
+The links into expo.dev (`recording.url`, `logs.url`, `uploadedScreenshots[].url`) point at the platform's own artifacts, which it keeps for 30 days. The screenshots the page shows are copied into the site, so the page itself keeps working after that; the recording and the logs do not.
 
 Timeline `kind` is one of `tap`, `type`, `swipe`, `open`, `describe`, `screenshot`, `wait`, `alert`, `recording`, `other`. The timeline reads both agent-device and argent event shapes. agent-device entries also carry `target` (the ref or selector the command aimed at) and, when the controller resolved one, `targetLabel`, which then names the tap (`Tapped "Checklist"`); a screenshot taken with `--scale` carries `scale`.
 
@@ -244,11 +252,11 @@ const { url } = deploySite({ siteDir, alias: "pr-12-evidence" });
 
 Also exported: `normalizeSession`, `normalizeTimeline`, `normalizeMetrics`, `parseVerdict`, `normalizeVerdict`, `verdictBadge`, `thumbsHtml`, `resolveProject`, `imageSize`.
 
-`collectSession` and `deploySite` accept injection points (`getSession`, `fetchText`, `sleep`, `exec`) so they can run without the network.
+`collectSession` (`getSession`, `stopSession`, `fetchText`, `fetchBytes`, `sleep`, `now`), `deploySite` (`exec`), and `sweepSessions` (`eas`, `now`) accept injection points so they can run without the network.
 
 ## Access and tokens
 
-- EAS Simulator sessions need an Expo account with access to the feature. In CI, set `EXPO_TOKEN` to a personal access token from expo.dev → Account → Access tokens. Inside EAS Workflows the token EAS injects is restricted and cannot create sessions, so store a personal token as a separate variable and export it as `EXPO_TOKEN` in the job.
+- Expo Simulators sessions need an Expo account with access to the feature. In CI, set `EXPO_TOKEN` to a personal access token from expo.dev → Account → Access tokens. Inside EAS Workflows the token EAS injects is restricted and cannot create sessions, so store a personal token as a separate variable and export it as `EXPO_TOKEN` in the job.
 - `.env.eas-simulator` holds a session token. Keep it out of git.
 - `collect` and `deploy` run eas-cli through `npx`. Nothing else in the tool talks to the network.
 
@@ -267,5 +275,5 @@ Also exported: `normalizeSession`, `normalizeTimeline`, `normalizeMetrics`, `par
 | Inter (variable) | Google Fonts, latin subset | SIL Open Font License 1.1 |
 | JetBrains Mono (variable) | Google Fonts, latin subset | SIL Open Font License 1.1 |
 | Lucide icons | lucide-static | ISC |
-| Expo mark (tab icon) | `@expo/styleguide` | MIT; the mark itself is Expo's trademark, used here because every run is an EAS Simulator session |
+| Expo mark (tab icon) | `@expo/styleguide` | MIT; the mark itself is Expo's trademark, used here because every run is an Expo Simulators session |
 | Color and type tokens | Derived from `expo/styleguide` | MIT |

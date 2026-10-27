@@ -1,12 +1,13 @@
 {
   "name": "eas-simulator-evidence",
   "version": "0.2.3",
-  "description": "Turn an EAS Simulator run into a static evidence site: verdict, screenshots, action timeline, CPU and memory charts, and the session recording.",
+  "description": "Turn an Expo Simulators run into a static evidence site: verdict, screenshots, action timeline, CPU and memory charts, and the session recording.",
   "author": "Jacob Hammerle",
   "keywords": [
     "expo",
     "eas",
     "eas-simulator",
+    "expo-simulators",
     "simulator",
     "emulator",
     "evidence",

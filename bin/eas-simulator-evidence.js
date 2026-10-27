@@ -4,8 +4,8 @@
 // Conventions: results on stdout, notes and errors on stderr; exit 0 on
 // success, 1 on a failure while working, 2 on a usage error; --json for
 // machine-readable output; color only on a TTY and never with NO_COLOR.
-import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { parseArgs, pairsToObject } from "../src/args.mjs";
 import { buildSite } from "../src/build.mjs";
 import { collectSession } from "../src/collect.mjs";
@@ -16,14 +16,12 @@ import { commentMarkdown } from "../src/comment.mjs";
 import { buildIndex } from "../src/index-page.mjs";
 import { junitXml } from "../src/junit.mjs";
 import { sweepSessions, PREVIEW_SUFFIX } from "../src/sweep.mjs";
-import { writeFileSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
 import { openInBrowser, serveSite } from "../src/serve.mjs";
 import { KIND_COLOR, paint } from "../src/term.mjs";
 import { thumbsHtml } from "../src/thumbs.mjs";
 import { normalizeVerdict, verdictBadge, verdictKind } from "../src/verdict.mjs";
 
-const HELP = `eas-simulator-evidence — turn an EAS Simulator run into an evidence site
+const HELP = `eas-simulator-evidence — turn an Expo Simulators run into an evidence site
 
 Usage
   eas-simulator-evidence run     <dir> --subject "<label>" --verdict "<line>" [options]
@@ -71,7 +69,7 @@ collect  Pull the session's own artifacts (events, metrics, recording link)
          prints a note and exits 0.
   --stop                Stop the session first (eas simulator:stop clears
                         .env.eas-simulator, so let the tool do the stopping)
-  --session <id>        EAS Simulator session id. Default: EAS_SIMULATOR_SESSION_ID,
+  --session <id>        Expo Simulators session id. Default: EAS_SIMULATOR_SESSION_ID,
                         then .env.eas-simulator
   --dotenv <path>       Dotenv to read the session id from. Default: .env.eas-simulator
   --extra k=v           Extra fact stored in session.json (repeatable)
@@ -87,7 +85,10 @@ open     Serve <dir>/site (or --out) on localhost and open it in the browser.
 
 deploy   Deploy <dir>/site (or --out) to EAS Hosting. Prints the URL.
   --alias <name>        Stable alias, e.g. pr-12-evidence
+  --out <dir>           The site folder, when it is not <dir>/site
   --project-dir <dir>   Expo project root. Default: current directory
+  --eas-cli-version <v> eas-cli version for npx. Default: EAS_CLI_VERSION or ${DEFAULT_EAS_CLI_VERSION}
+  --json                Print the result as JSON
 
 thumbs   Print an HTML row of linked thumbnails for a PR comment.
   --max <n>             How many. Default: 4
@@ -114,9 +115,10 @@ index    One page over many built sites: a card per run with its verdict.
 sweep    Stop live simulator sessions started by the "Try this build" button
          once they are older than the limit. Run it on a schedule.
   --older-than <min>    Age limit in minutes. Default: 30
-  --name-suffix <text>  Match sessions whose name ends with this. Default: "evidence-site preview"
+  --name-suffix <text>  Match sessions whose name ends with this. Default: "${PREVIEW_SUFFIX}"
   --type <type>         Session type to consider. Default: web-preview-only
   --dry-run             List what would be stopped
+  --eas-cli-version <v> eas-cli version for npx. Default: EAS_CLI_VERSION or ${DEFAULT_EAS_CLI_VERSION}
   --json                Print the result as JSON
 
 init     Copy a recipe into the project and add the evidence paths to .gitignore.
@@ -129,7 +131,7 @@ Global
 `;
 
 const REPEAT = ["extra", "line"];
-const FLAGS = ["json", "badge", "help", "version", "force", "no-browser", "dry-run", "screenshots", "stop", "h", "v"];
+const FLAGS = ["json", "badge", "help", "version", "force", "no-browser", "dry-run", "screenshots", "stop"];
 
 // Every option each command accepts, camelCase. Anything else is a typo,
 // and a typo that is silently ignored is worse than an error.
@@ -145,7 +147,7 @@ const OPTIONS = {
   verdict: ["badge", "fallback"],
   init: ["force", "projectDir"],
   comment: ["verdict", "verdictFile", "reportFile", "title", "agent", "footer", "line", "max"],
-  index: ["out", "subject", "name"],
+  index: ["out", "subject", "name", "json"],
   sweep: ["olderThan", "nameSuffix", "type", "dryRun", "json", "easCliVersion"],
   version: [],
   help: [],
@@ -261,8 +263,8 @@ async function main() {
     fail(e.message);
   }
   let cmd = a.command;
-  if (a.version || a.v) cmd = "version";
-  if (!cmd || cmd === "help" || a.help || a.h) {
+  if (a.version) cmd = "version";
+  if (!cmd || cmd === "help" || a.help) {
     process.stdout.write(HELP);
     return;
   }

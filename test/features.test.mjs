@@ -31,7 +31,7 @@ test("each screenshot that followed a tap gets a ring at the tap's spot", () => 
   assert.match(h, /id="lb-tap" hidden/);
 });
 
-test("no marker without a preceding tap, with point units, or with values outside the screen", () => {
+test("no marker without a preceding tap, with points off the image, or with values outside the screen", () => {
   const s = readFixtureSession();
   s.timeline = [
     { kind: "tap", x: 120, y: 640, xyUnit: "pt", ts: s.timeline[0].ts },
@@ -89,6 +89,8 @@ test("a session that errored or was still running gets a banner; a stopped one d
     ["STOPPED", null],
     ["ERRORED", /banner-danger[^<]*>[\s\S]*?ended with an error/],
     ["IN_PROGRESS", /banner-warn[^<]*>[\s\S]*?still running when this data was collected/],
+    ["QUEUED", /banner-warn[^<]*>[\s\S]*?still running when this data was collected/],
+    ["STARTING", /banner-warn[^<]*>[\s\S]*?still running when this data was collected/],
     ["new", /banner-warn/],
     [null, null],
   ];
@@ -154,6 +156,21 @@ test("an unnamed, untagged session shows no name or tags facts", () => {
   const r2 = buildSite({ dir: odd, subject: "PR #1", verdict: "PASS: ok", out: out2, log: quiet });
   assert.doesNotMatch(html(out2), /Tags<\/span>/);
   assert.deepEqual(JSON.parse(readFileSync(r2.manifest, "utf8")).session.tags, []);
+});
+
+test("an errored session's banner carries the platform's reason, escaped", () => {
+  const errored = { ...readFixtureSession(), status: "ERRORED", errors: [{ code: "EAS_IOS_SIMULATOR_NOT_FOUND", message: 'No <b>Simulator</b> named "iPhone 16 Pro".' }] };
+  const dir = makeEvidence({ images: ["1-home.png"], session: errored });
+  const out = fresh("errored");
+  const r = buildSite({ dir, subject: "PR #1", verdict: "INCONCLUSIVE: the session died", out, log: quiet });
+  const h = html(out);
+  assert.match(h, /banner-danger[\s\S]*?ended with an error\. The run may be incomplete\. No &lt;b&gt;Simulator&lt;\/b&gt; named &quot;iPhone 16 Pro&quot;\./);
+  assert.doesNotMatch(h, /<b>Simulator<\/b>/);
+  assert.equal(JSON.parse(readFileSync(r.manifest, "utf8")).session.errors.length, 1);
+  const plain = { ...readFixtureSession(), status: "ERRORED", errors: [] };
+  const out2 = fresh("errored-plain");
+  buildSite({ dir: makeEvidence({ images: ["1-home.png"], session: plain }), subject: "PR #1", verdict: "FAIL: x", out: out2, log: quiet });
+  assert.match(html(out2), /The run may be incomplete\.<\/span>/);
 });
 
 test("the raw data section links the session's app logs when there are any", () => {

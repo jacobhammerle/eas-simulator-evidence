@@ -6,7 +6,8 @@
 // unknown syntax stays visible as typed. Line breaks inside a paragraph
 // are kept, the way GitHub renders a comment, because the same report
 // goes into the pull-request comment.
-const esc = (s) =>
+// The one HTML escape every renderer uses. Session fields are untrusted.
+export const esc = (s) =>
   String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

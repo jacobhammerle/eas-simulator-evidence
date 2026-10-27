@@ -2,7 +2,7 @@
 # The whole loop on one machine: start a cloud simulator, drive it, stop it,
 # build the evidence site, open it. Swap step 2 for any controller or agent.
 #
-# Needs: an Expo account with EAS Simulator access (npx eas-cli login),
+# Needs: an Expo account with Expo Simulators access (npx eas-cli login),
 #        an iOS simulator build id from EAS Build (eas build -p ios --profile preview)
 set -euo pipefail
 

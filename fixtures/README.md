@@ -1,6 +1,6 @@
 # Fixtures
 
-Real output from an EAS Simulator run, committed so the tests and the demo work
+Real output from an Expo Simulators run, committed so the tests and the demo work
 without a simulator or an Expo account.
 
 ## qa-checklist-ios
@@ -16,6 +16,7 @@ off, and took a screenshot after each step.
 | `session/session.json` | Written by `collect`: facts, timeline, metrics, recording link |
 | `session/events.ndjson` | The session's raw activity events, as the platform uploaded them |
 | `session/metrics.ndjson` | The session's raw per-second CPU, memory, and network samples |
+| `raw/simulator-get.json` | The raw `eas simulator:get --json` output the session files were made from |
 
 Session `01a0d92e-195f-7045-a13c-23181fd8fc70`, iPhone 17, iOS 26.5, argent controller, 2026-09-25.
 The recording is linked by URL and needs access to the project on expo.dev.

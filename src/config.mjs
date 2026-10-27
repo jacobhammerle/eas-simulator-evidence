@@ -35,4 +35,4 @@ export function resolveProject({
 // The eas-cli release the tool runs through npx when neither
 // --eas-cli-version nor EAS_CLI_VERSION is set. Pinned so a new eas-cli
 // release cannot change the JSON the tool parses without a release here.
-export const DEFAULT_EAS_CLI_VERSION = "25.1.1";
+export const DEFAULT_EAS_CLI_VERSION = "26.0.0";

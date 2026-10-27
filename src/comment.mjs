@@ -2,7 +2,7 @@
 // it once: a heading, the verdict with its status emoji, a short list of
 // links, a row of thumbnails, the report folded away, a footer.
 //
-//   commentMarkdown({ dir, siteUrl, verdict, report, title, agent, lines, max })
+//   commentMarkdown({ dir, siteUrl, verdict, report, title, agent, footer, lines, max })
 //
 // GitHub and GitLab both render this. Pipe it to `gh pr comment --body-file -`
 // or `glab mr note -m "$(...)"`.

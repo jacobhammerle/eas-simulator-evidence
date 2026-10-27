@@ -2,7 +2,7 @@
 #
 # Copy to .eas/workflows/pr-evidence.yml. On each PR it finds (or builds) a
 # simulator binary that matches the PR's native code, injects the PR's
-# JavaScript, drives the app on an EAS cloud simulator, and publishes the
+# JavaScript, drives the app on Expo Simulators, and publishes the
 # evidence site to EAS Hosting at a stable per-PR alias.
 #
 # Environment variables (EAS dashboard → project → Environment variables):
@@ -85,9 +85,10 @@ jobs:
           # -----------------------------------------------------------------
 
           # --stop: the tool stops the session, then collects its artifacts.
+          # The URL is the last line the tool prints.
           URL=$(npx --yes eas-simulator-evidence@latest run evidence --stop \
             --subject "PR #$PR_NUMBER" --verdict-file verdict.txt \
-            --build-id "$BUILD_ID" --deploy-alias "pr-$PR_NUMBER-evidence")
+            --build-id "$BUILD_ID" --deploy-alias "pr-$PR_NUMBER-evidence" | tail -n 1)
           trap - EXIT
           echo "Evidence site: $URL"
           set-output url "$URL"

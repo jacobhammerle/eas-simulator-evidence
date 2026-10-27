@@ -7,7 +7,7 @@ import { buildSite } from "../src/build.mjs";
 import { fresh, quiet, makeEvidence, html, htmlNoScript, cleanOut, readFixtureSession } from "./helpers.mjs";
 
 after(cleanOut);
-const notWindows = { skip: process.platform === "win32" ? "file name not allowed on Windows" : false };
+import { notWindows } from "./helpers.mjs";
 
 const LEAK = /\b(NaN|undefined|\[object Object\])\b|(?<![\w-])null(?![\w-])/;
 

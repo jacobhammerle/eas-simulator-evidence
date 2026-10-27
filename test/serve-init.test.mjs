@@ -118,11 +118,11 @@ test("ensureGitignore appends only what is missing and keeps the file's ending",
   const r = ensureGitignore(proj);
   assert.deepEqual(r.added, [".env.eas-simulator"]);
   const text = readFileSync(join(proj, ".gitignore"), "utf8");
-  assert.equal(text, "node_modules/\nevidence/\n\n# EAS Simulator session config (holds a session auth token)\n.env.eas-simulator\n");
+  assert.equal(text, "node_modules/\nevidence/\n\n# Expo Simulators session config (holds a session auth token)\n.env.eas-simulator\n");
   assert.deepEqual(ensureGitignore(proj).added, [], "second run is a no-op");
   const none = fresh("gi-none");
   ensureGitignore(none);
-  assert.match(readFileSync(join(none, ".gitignore"), "utf8"), /^# EAS Simulator/);
+  assert.match(readFileSync(join(none, ".gitignore"), "utf8"), /^# Expo Simulators/);
 });
 
 test("init: the CLI lists targets, writes one, and reports next steps", () => {
@@ -204,11 +204,22 @@ test("--wait must be a number", () => {
 
 // --- action.yml ------------------------------------------------------------
 
+test("index --json prints the run count and the index path", () => {
+  const dir = fresh("index-json");
+  mkdirSync(join(dir, "run-1"), { recursive: true });
+  buildSite({ dir: fixture, subject: "PR #1", verdict: "PASS: ok", out: join(dir, "run-1"), log: quiet });
+  const r = cli(["index", dir, "--json"]);
+  assert.equal(r.code, 0, r.stderr);
+  const j = JSON.parse(r.stdout.trim().split("\n").pop());
+  assert.equal(j.runs, 1);
+  assert.ok(existsSync(join(dir, "index.html")));
+});
+
 test("action.yml declares the inputs the CLI accepts and the outputs the run emits", () => {
   const y = readFileSync(join(root, "action.yml"), "utf8");
   assert.match(y, /^name: /m);
   assert.match(y, /using: composite/);
-  for (const input of ["dir", "subject", "verdict", "verdict-file", "report-file", "session", "build-id", "agent", "lane", "name", "owner", "slug", "deploy-alias", "working-directory"]) {
+  for (const input of ["dir", "subject", "verdict", "verdict-file", "report-file", "session", "build-id", "agent", "lane", "name", "owner", "slug", "deploy-alias", "stop", "url", "junit", "fail-on", "working-directory"]) {
     assert.match(y, new RegExp(`^  ${input}:\\n`, "m"), `input ${input}`);
   }
   for (const output of ["url", "site-dir", "kind", "verdict"]) {

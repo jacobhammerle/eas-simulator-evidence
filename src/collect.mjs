@@ -1,4 +1,4 @@
-// Collects an EAS Simulator session's own artifacts into the evidence dir so
+// Collects an Expo Simulators session's own artifacts into the evidence dir so
 // the evidence site can show more than screenshots.
 //
 //   await collectSession({ dir, sessionId, extra, ... }) -> session summary | null
@@ -25,7 +25,8 @@
 //
 // normalizeSession is pure: it turns the raw simulator:get JSON plus the
 // two NDJSON artifacts into session.json. Everything that touches the
-// network or eas-cli is injectable (getSession, fetchText, sleep), so the
+// network or eas-cli is injectable (getSession, stopSession, fetchText,
+// fetchBytes, sleep, now), so the
 // whole path is testable without an account.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -50,7 +51,7 @@ export function parseCliJson(raw) {
   return JSON.parse(s.slice(start));
 }
 
-export function runEasSimulatorStop(sessionId, easCliVersion = DEFAULT_EAS_CLI_VERSION) {
+function runEasSimulatorStop(sessionId, easCliVersion = DEFAULT_EAS_CLI_VERSION) {
   execFileSync(
     "npx",
     ["--yes", `eas-cli@${easCliVersion}`, "simulator:stop", "--id", sessionId, "--non-interactive"],
@@ -58,7 +59,7 @@ export function runEasSimulatorStop(sessionId, easCliVersion = DEFAULT_EAS_CLI_V
   );
 }
 
-export function runEasSimulatorGet(sessionId, easCliVersion = DEFAULT_EAS_CLI_VERSION) {
+function runEasSimulatorGet(sessionId, easCliVersion = DEFAULT_EAS_CLI_VERSION) {
   const raw = execFileSync(
     "npx",
     [
@@ -136,6 +137,7 @@ const isoMs = (iso) => {
   return Number.isFinite(n) ? n : null;
 };
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+const text = (v) => (typeof v === "string" ? v.trim() : "");
 const numbers = (a) => a.filter((x) => typeof x === "number");
 const max = (a) => (a.length ? Math.max(...a) : null);
 const avg = (a) =>
@@ -349,6 +351,12 @@ export function normalizeSession({
     platform: session.platform ?? null,
     type: session.type ?? null,
     status: session.status ?? null,
+    // Why the session failed, as eas-cli 26+ reports it ({ errorCode, message }).
+    errors: Array.isArray(session.errors)
+      ? session.errors
+          .map((e) => ({ code: text(e?.errorCode), message: text(e?.message) }))
+          .filter((e) => e.message)
+      : [],
     tags: Array.isArray(session.tags) ? session.tags : [],
     createdAt: session.createdAt ?? null,
     startedAt: session.startedAt ?? null,

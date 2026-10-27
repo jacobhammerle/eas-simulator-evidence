@@ -155,6 +155,18 @@ test("metrics: samples, summary, anchors, and the app-only filter", () => {
   assert.deepEqual(m3.summary, { samples: 1, appSamples: 0, cpuMax: null, cpuAvg: null, memMaxMB: null, memAvgMB: null, netInMaxBps: null, netInTotalBytes: 0 });
 });
 
+test("normalizeSession keeps the platform's error reasons, trimmed and typed", () => {
+  const errors = [
+    { errorCode: "EAS_IOS_SIMULATOR_NOT_FOUND", message: ' No available iOS Simulator is named "iPhone 16 Pro". ', docsUrl: null },
+    { errorCode: "UNKNOWN_ERROR" },
+    "junk",
+  ];
+  const s = normalizeSession({ session: { ...raw(), status: "ERRORED", errors }, collectedAt: "c" });
+  assert.deepEqual(s.errors, [{ code: "EAS_IOS_SIMULATOR_NOT_FOUND", message: 'No available iOS Simulator is named "iPhone 16 Pro".' }]);
+  assert.deepEqual(normalizeSession({ session: raw(), collectedAt: "c" }).errors, []);
+  assert.deepEqual(normalizeSession({ session: { ...raw(), errors: "nope" }, collectedAt: "c" }).errors, []);
+});
+
 test("normalizeSession keeps the simulator app logs artifact as a link", () => {
   const logArt = { filename: "app-logs.ndjson", downloadUrl: "https://example.test/app-logs.ndjson", fileSizeBytes: 4171008, metadata: { __eas_type: "simulator-log", source: "serve-sim/logs" } };
   const s = normalizeSession({ session: withArts([...artifacts(), logArt]), collectedAt: "c" });
@@ -173,6 +185,7 @@ test("normalizeSession with a bare session: nulls, not crashes", () => {
   assert.equal(s.durationMs, null);
   assert.equal(s.recording, null);
   assert.equal(s.logs, null);
+  assert.deepEqual(s.errors, []);
   assert.deepEqual(s.device, { name: null, udid: null, runtime: null, hostCores: null });
   assert.deepEqual(s.raw, { metrics: null, events: null });
   assert.deepEqual(s.uploadedScreenshots, []);

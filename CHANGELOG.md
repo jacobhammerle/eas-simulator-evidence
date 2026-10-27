@@ -7,9 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-27
+
+### Added
+
+- When a session errored, the banner above the verdict now says why, from the `errors` array that `eas simulator:get --json` reports since eas-cli 26.0.0. The reasons are kept in `session.json` as `errors` (`code`, `message`) and in `evidence.json` under `session`.
+
 ### Changed
 
-- README: the live demo page and the screenshot now come from the agent verification run on [todo-app pull request 7](https://github.com/jacobhammerle/todo-app/pull/7), an Expo SDK 58 app, instead of the checked-in fixture.
+- A sweep of the repo. The "Try this build" note no longer claims the session stops after 30 minutes; it runs until stopped or until the plan's maximum. A subject longer than the platform's 255-character name limit no longer cuts off the marker suffix that `sweep` matches. The EAS Workflows recipe captures the URL correctly (it took three lines before), the GitHub Actions recipe posts the PR comment with `comment`, and `index` accepts `--json`. The reference lists every flag the CLI accepts for `open`, `deploy`, `sweep`, and `init`, the manifest's full field list, and the real injection points. Stale comments, two unexported internals, and an unused color code are gone.
+- README and skill say the tool works for any app the simulator runs, native or React Native, and how to pass the project facts when there is no `app.json`.
+- The product is called Expo Simulators everywhere: the page, the CLI help, the Action, the recipes, the skill, and the docs. Commands, file names, and environment variables keep their `eas-simulator` spelling.
+- `sweep` also lists `queued` and `starting` sessions, two statuses the platform added in October, so a session stuck before boot is swept too. The page shows the "still running" banner for those statuses as well.
+- The reference says that the recording, logs, and uploaded screenshot links point at platform artifacts kept for 30 days.
+- The pinned eas-cli is 26.0.0 (was 25.1.1). The commands the tool runs keep their flags and output shapes; `simulator:start` gained `--system-image` for Android, which the skill now mentions.
+- README: shorter again, with a "See it in a real project" section that points at [todo-app](https://github.com/jacobhammerle/todo-app), the public example of agentic workflows on Expo Simulators that uses this package for every verdict. The live demo page and the screenshot come from that app's [pull request 7](https://github.com/jacobhammerle/todo-app/pull/7) instead of the checked-in fixture.
 
 ## [0.2.3] - 2026-10-17
 

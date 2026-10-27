@@ -32,6 +32,9 @@ Layout:
 | `assets/` | Stylesheet, fonts, icons. Copied next to the page. |
 | `fixtures/` | A real run, used by the tests and the demo. |
 | `recipes/` | CI examples. `init` copies them. |
+| `skills/` | The skill file an agent reads before using the tool. |
+| `docs/` | The reference and the README screenshot. |
+| `action.yml` | The composite GitHub Action. It runs the CLI from the tagged checkout. |
 | `test/` | Node's built-in test runner. |
 
 ## Agents
@@ -57,3 +60,4 @@ Maintainer only. Versions follow [semver](https://semver.org/). The `session.jso
 1. Move the `Unreleased` entries in `CHANGELOG.md` under a new version heading with today's date.
 2. `npm version <major|minor|patch>` to bump `package.json` and tag.
 3. `git push --follow-tags`. The release workflow publishes to npm with provenance and creates the GitHub release.
+4. Move the floating major tag so the GitHub Action at `@v0` picks up the release: `git tag -f v0 v<version> && git push -f origin v0`.

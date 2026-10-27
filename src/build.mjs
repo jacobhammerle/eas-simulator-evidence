@@ -1,6 +1,7 @@
 // Builds a static evidence page from an evidence dir.
 //
-//   buildSite({ dir, subject, verdict, ... }) -> { siteDir, images, videos, session, kind }
+//   buildSite({ dir, subject, verdict, ... })
+//     -> { siteDir, images, videos, session, kind, verdict, report, url, durationMs, manifest }
 //
 // <subject> is the page label, e.g. "PR #12" or "Issue #7". The verdict's
 // leading keyword drives the status pill (see verdict.mjs):
@@ -12,8 +13,8 @@
 // Inputs, all optional beyond the screenshots:
 //   <evidenceDir>/*.png|jpg        screenshots, natural-sorted (capture order)
 //   <evidenceDir>/*.mp4|mov        clips the agent recorded itself
-//   <evidenceDir>/session/session.json  written by collect-session-evidence.mjs
-//     from the EAS simulator session's own artifacts. When present the page
+//   <evidenceDir>/session/session.json  written by collect.mjs
+//     from the Expo Simulators session's own artifacts. When present the page
 //     adds: run facts, a command breakdown, the action timeline (every
 //     command with duration and outcome), CPU and memory charts with the
 //     taps marked, the platform's full-session screen recording (linked,
@@ -29,8 +30,8 @@
 // (arrows page and wrap, Esc/backdrop/× close, body scroll locks); the
 // theme follows the OS with a nav toggle (system / light / dark)
 // remembered in localStorage. The platform's full-session recording is
-// linked from Raw data, not embedded, and the per-second metrics stay in
-// the charts only (no data table).
+// embedded with preload="none" and linked from Raw data; the per-second
+// metrics stay in the charts only.
 //
 // FAIL state: when the verdict is FAIL (or REPLICATED) and names
 // "Screenshot N", tile N gets a FAILED tag and the timeline row that
@@ -49,7 +50,9 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseVerdict } from "./verdict.mjs";
-import { renderMarkdown } from "./markdown.mjs";
+import { esc, renderMarkdown } from "./markdown.mjs";
+import { caption } from "./thumbs.mjs";
+import { PREVIEW_SUFFIX } from "./sweep.mjs";
 
 const assetsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "assets");
 
@@ -180,25 +183,9 @@ if (existsSync(join(sessionDir, "session.json"))) {
 }
 
 // ------------------------------------------------------------------ helpers
-const esc = (s) =>
-  String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 
 // JSON for the page script; "<" is escaped so "</script>" can't break out.
 const jsonForScript = (v) => JSON.stringify(v).replace(/</g, "\\u003c");
-
-// "2-settings-toggle.png" -> "Settings toggle"
-const caption = (f) => {
-  const base = f
-    .replace(/\.[^.]+$/, "")
-    .replace(/^\d+[-_ ]*/, "")
-    .replace(/[-_]+/g, " ")
-    .trim();
-  return base ? base.charAt(0).toUpperCase() + base.slice(1) : f;
-};
 
 // Lucide icons, inlined: 16px, stroke 1.75, currentColor.
 const iconCache = new Map();
@@ -337,8 +324,15 @@ let healthHtml = "";
 if (session) {
   const st = String(session.status || "").toUpperCase();
   const banner = (cls, text) => `<div class="banner banner-${cls}" role="status">${icon("triangle-alert")}<span>${text}</span></div>`;
-  if (st === "ERRORED") healthHtml = banner("danger", "The simulator session ended with an error. The run may be incomplete.");
-  else if (st === "IN_PROGRESS" || st === "NEW") healthHtml = banner("warn", "The session was still running when this data was collected. Later commands, metrics, and the recording are missing.");
+  if (st === "ERRORED") {
+    // eas-cli 26+ reports why; older collects have no errors to show.
+    const why = (Array.isArray(session.errors) ? session.errors : [])
+      .map((e) => esc(String(e?.message || "")).trim())
+      .filter(Boolean)
+      .join(" ");
+    healthHtml = banner("danger", `The simulator session ended with an error. The run may be incomplete.${why ? ` ${why}` : ""}`);
+  }
+  else if (["NEW", "QUEUED", "STARTING", "IN_PROGRESS"].includes(st)) healthHtml = banner("warn", "The session was still running when this data was collected. Later commands, metrics, and the recording are missing.");
 }
 
 // Where the page will live, for the link-preview tags. Only http(s).
@@ -383,7 +377,7 @@ const h1Class =
         : "";
 
 // ---------------------------------------------------------------- session
-// Timeline kinds (collect-session-evidence.mjs) -> label and Lucide icon.
+// Timeline kinds (collect.mjs) -> label and Lucide icon.
 const KIND_META = {
   tap: ["Taps", "pointer"],
   type: ["Typing", "keyboard"],
@@ -492,14 +486,17 @@ ${facts.map(([k, val, cls]) => `  <div class="fact${String(val).length > 24 ? " 
       `https://expo.dev/accounts/${expoOwner}/projects/${expoSlug}/simulator-sessions/create`,
     );
     createUrl.searchParams.set("buildId", x.build_id);
+    // The platform caps names at 255; shorten the subject, never the marker
+    // suffix, or sweep cannot find the session.
+    const sep = " · ";
     createUrl.searchParams.set(
       "name",
-      `${subject} · evidence-site preview`.slice(0, 255),
+      `${String(subject).slice(0, 255 - sep.length - PREVIEW_SUFFIX.length)}${sep}${PREVIEW_SUFFIX}`,
     );
     launchBtns.push(
-      `<a class="btn" href="${esc(createUrl.toString())}" target="_blank" rel="noopener" title="Starts a new EAS Simulator session with this build">${icon("smartphone")}Try this build on a simulator${icon("external-link")}</a>`,
+      `<a class="btn" href="${esc(createUrl.toString())}" target="_blank" rel="noopener" title="Starts a new Expo Simulators session with this build">${icon("smartphone")}Try this build on a simulator${icon("external-link")}</a>`,
     );
-    launchNote = `<span class="launch-note">Starts a new browser-preview session on expo.dev that stops by itself within 30 minutes. Sign in with an Expo account that can access this project.</span>`;
+    launchNote = `<span class="launch-note">Starts a new browser-preview session on expo.dev under your account. It runs until you stop it or it reaches your plan's maximum duration. Sign in with an Expo account that can access this project.</span>`;
   }
   if (recUrl)
     launchBtns.push(
@@ -611,7 +608,7 @@ ${rows.join("\n")}
 </section>`;
   }
 
-  // Performance: stat cards, two static SVG charts, data table.
+  // Performance: stat cards and up to three static SVG charts (CPU, memory, network).
   const m = session.metrics;
   const num = (v) => typeof v === "number" && Number.isFinite(v);
   const samples = Array.isArray(m?.samples)
@@ -873,6 +870,7 @@ const manifest = {
         id: session.id,
         name: session.name ?? null,
         tags: Array.isArray(session.tags) ? session.tags.map(String) : [],
+        errors: Array.isArray(session.errors) ? session.errors : [],
         platform: session.platform ?? null,
         status: session.status ?? null,
         device: session.device?.name ?? null,
@@ -1242,7 +1240,7 @@ ${metaHtml}
       <div class="pill ${PILL[0]}">${icon(PILL[1])}${esc(verdictLabel)}</div>
       <h1 class="h1${h1Class}">${esc(verdictDetail)}</h1>
     </div>
-    <p class="lede">An agent drove the app on an EAS cloud ${isEmulator ? "emulator" : "simulator"}${deviceParen}. ${session ? "Every screenshot, device command, and performance sample below is from that run." : "Every screenshot below is from that run."}${sessionLink}</p>
+    <p class="lede">An agent drove the app on a cloud ${isEmulator ? "emulator" : "simulator"} from Expo Simulators${deviceParen}. ${session ? "Every screenshot, device command, and performance sample below is from that run." : "Every screenshot below is from that run."}${sessionLink}</p>
     ${launchHtml}
     ${factsHtml}
     ${breakdownHtml}
@@ -1272,7 +1270,7 @@ ${rawHtml}
     <span>·</span>
     <span>${esc(agentName)}</span>
     <span>·</span>
-    <span>EAS Simulator</span>
+    <span>Expo Simulators</span>
     ${session ? `<span class="foot-id">session ${esc(session.id)}</span>` : ""}
   </div>
 </footer>

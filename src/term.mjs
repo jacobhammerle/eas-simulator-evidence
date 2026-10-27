@@ -6,7 +6,7 @@ export function colorEnabled(stream = process.stdout, env = process.env) {
   return Boolean(stream && stream.isTTY);
 }
 
-const CODES = { green: 32, red: 31, yellow: 33, dim: 2, bold: 1, cyan: 36 };
+const CODES = { green: 32, red: 31, yellow: 33, dim: 2, cyan: 36 };
 
 export function paint(text, color, enabled = colorEnabled()) {
   if (!enabled || !CODES[color]) return String(text);

@@ -1,7 +1,7 @@
 <h1 align="center">eas-simulator-evidence</h1>
 
 <p align="center">
-  Proof of what happened on an <a href="https://docs.expo.dev/preview/eas-simulator/introduction/">EAS Simulator</a> run, as one page anyone can open.<br>
+  Proof of what happened on an <a href="https://docs.expo.dev/preview/eas-simulator/introduction/">Expo Simulators</a> run, as one page anyone can open.<br>
   The verdict, the screenshots, every tap, the performance charts, and the recording. Static, shareable, no login.
 </p>
 
@@ -16,24 +16,23 @@
 </p>
 
 <p align="center">
-  <a href="https://simple-todo--evidence-demo.expo.app"><strong>Open the live page</strong></a> · the verification run from <a href="https://github.com/jacobhammerle/todo-app/pull/7">a real pull request</a>, hosted on EAS Hosting
+  <a href="https://simple-todo--evidence-demo.expo.app"><strong>Open the live page</strong></a> · the verification run from <a href="https://github.com/jacobhammerle/todo-app/pull/7">a real pull request</a>
 </p>
 
 <br>
 
-An agent or a script drives your app on an EAS Simulator. When the session ends, this tool turns it into one static page: the verdict, the screenshots with the taps marked, every device command with its timing, CPU and memory, and the session recording. Put the link in the pull request. Reviewers open it in a browser, on any OS, with no Expo account.
+An agent or a script drives your app on Expo Simulators. When the session ends, this tool turns it into one static page and the link goes on the pull request. Reviewers open it in any browser, on any OS, with no Expo account.
 
 ## Why add it
 
-- **Proof instead of claims.** An agent says the fix works. The page shows the screens, the taps, and the recording that back it up.
-- **One link for review.** The PR comment carries the verdict, the thumbnails, and the link. Nobody needs a Mac or a simulator to check the work.
-- **Any driver.** agent-device, argent, Appium, Maestro, or a shell script. The tool reads the session, not the driver.
-- **Built for CI.** The exit code follows the verdict, there is a JUnit file, a ready PR comment, and a GitHub Action.
-- **Nothing to install, nothing to run.** Zero dependencies. The output is a folder of static files. Put it on EAS Hosting, GitHub Pages, S3, or keep it as a CI artifact.
+- **Proof instead of claims.** The page shows the screens, the taps, and the recording behind an agent's "it works".
+- **Any app, any driver.** Expo, React Native, Swift, or Kotlin. agent-device, argent, Appium, Maestro, or a shell script. The tool reads the session, not the code.
+- **Built for CI.** The exit code follows the verdict. There is a JUnit file, a ready PR comment, and a GitHub Action.
+- **Nothing to install, nothing to host.** Zero dependencies, and the output is a folder of static files.
 
 ## Give it a try
 
-No simulator and no Expo account needed. A real run is checked into the repo, so you can build a page locally. The [live page](https://simple-todo--evidence-demo.expo.app) comes from [todo-app](https://github.com/jacobhammerle/todo-app), an Expo SDK 58 app whose pull requests are verified by an agent on EAS Simulator.
+No simulator and no Expo account needed. A real run is checked into the repo.
 
 ```sh
 git clone https://github.com/jacobhammerle/eas-simulator-evidence
@@ -41,25 +40,19 @@ cd eas-simulator-evidence
 npm run demo
 ```
 
-## What you get
+## What is on the page
 
-- **The verdict** as a colored pill and a headline: `PASS`, `FAIL`, `REPLICATED`, `CONFIRMED`, `NOT-REPLICATED`, or `INCONCLUSIVE`.
-- **Screenshots** in capture order, with a ring where the tap landed and a full-screen viewer.
-- **The timeline.** Every tap, swipe, and screen read with timing. A tap links to its screenshot. A time plays the recording from that moment.
-- **Performance.** CPU, memory, and network for the whole run, with the taps and the app launch marked.
-- **The agent's report**, rendered from Markdown.
-- **The recording**, playable on the page. It loads nothing until you press play.
-- **A "Try this build" button** that opens the same build in a new simulator session on expo.dev.
+- **The verdict**: `PASS`, `FAIL`, `REPLICATED`, `CONFIRMED`, `NOT-REPLICATED`, or `INCONCLUSIVE`, as a pill and a headline.
+- **Screenshots** in capture order, each with a ring where the tap landed.
+- **The timeline**: every tap, swipe, and screen read, with timing. A tap links to its screenshot. A time plays the recording from that moment.
+- **Performance**: CPU, memory, and network for the whole run.
+- **The agent's report**, the recording, a "Try this build" button, and the raw data.
 
-It is one `index.html` and its assets. It opens from `file://`, works on a phone, and follows light or dark mode.
+One `index.html` plus assets. It opens from `file://`, works on a phone, and follows light or dark mode.
 
 ## How it works
 
-Three inputs: a folder of screenshots, a subject, and a verdict line. The tool gets everything else from the session.
-
-1. **Run the app** on an EAS Simulator. Save screenshots in order: `1-home.png`, `2-settings.png`, and so on.
-2. **Write the verdict.** One line, like `PASS: the home screen rendered`. The lines after it become the report.
-3. **Run the tool.** It stops the session, pulls the session data, builds the page, and deploys it.
+You provide three things: a folder of screenshots, a subject, and a verdict line. Everything else comes from the session.
 
 ```sh
 # 1. Start a cloud simulator with your build installed, then drive it your way
@@ -67,36 +60,33 @@ npx eas-cli@latest simulator:start --platform ios --type agent-device \
   --build-id "$BUILD_ID" --non-interactive --name "PR #12 evidence"
 npx eas-cli@latest simulator:exec npx agent-device@latest screenshot evidence/1-home.png --platform ios
 
-# 2. Write the verdict
+# 2. Write the verdict. Lines after the first become the report.
 echo "PASS: the home screen rendered" > verdict.txt
 
-# 3. Stop, collect, build, deploy. Prints the URL; save it as URL for step 4.
-npx eas-simulator-evidence@latest run evidence --stop --subject "PR #12" \
-  --verdict-file verdict.txt --build-id "$BUILD_ID" --deploy-alias pr-12-evidence
+# 3. Stop the session, collect its data, build the page, deploy it. The URL is the last line.
+URL=$(npx eas-simulator-evidence@latest run evidence --stop --subject "PR #12" \
+  --verdict-file verdict.txt --build-id "$BUILD_ID" --deploy-alias pr-12-evidence | tail -n 1)
 
 # 4. Post it on the pull request
 npx eas-simulator-evidence@latest comment evidence "$URL" --verdict-file verdict.txt | gh pr comment 12 --body-file -
 ```
 
-`--screenshots` uses the session's own captures when nothing saved any. `--fail-on fail` exits 3 on a FAIL, after the site is up, so the CI job goes red.
+Name screenshots `1-home.png`, `2-settings.png`, and so on. Add `--fail-on fail` to exit 3 on a FAIL once the site is up, so CI goes red. A project without an `app.json`, such as a native app, passes `--name`, `--owner`, and `--slug`.
 
 ## In CI
 
-A CI job does the same four steps as above. The runner never needs macOS: the simulator runs on EAS, and the job only sends commands. The job needs two things: `EXPO_TOKEN` as a secret, and the id of an EAS build to install.
+The runner never needs macOS. The simulator runs on EAS, and the job only sends commands. It needs `EXPO_TOKEN` as a secret and the id of an EAS build to install.
 
-**The quick way.** Copy a complete workflow into your project and edit the "drive the app" step:
+Copy a complete workflow into your project, then edit its "drive the app" step:
 
 ```sh
 npx eas-simulator-evidence@latest init github-actions   # or: eas-workflows, gitlab-ci, local
 ```
 
-The copied workflow starts the simulator, drives the app, builds the page, publishes it, and comments on the pull request. See [github-actions.yml](recipes/github-actions.yml), [eas-workflows.yml](recipes/eas-workflows.yml), [gitlab-ci.yml](recipes/gitlab-ci.yml), or [local.sh](recipes/local.sh).
-
-**Already have a workflow?** Add the GitHub Action after the step that drives the app and saves the screenshots. It stops the session, builds the page, deploys it, and fails the job on a FAIL verdict:
+Already have a workflow? Add the Action after the step that saves the screenshots. It stops the session, builds and deploys the page, and fails the job on a FAIL verdict:
 
 ```yaml
 - uses: jacobhammerle/eas-simulator-evidence@v0
-  id: evidence
   with:
     subject: PR #${{ github.event.pull_request.number }}
     verdict-file: verdict.txt
@@ -107,11 +97,11 @@ The copied workflow starts the simulator, drives the app, builds the page, publi
     EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 ```
 
-The step outputs `url`, `kind`, `verdict`, and `site-dir`. Use `url` in a PR comment, or upload `site-dir` to another host instead of setting `deploy-alias`.
+It outputs `url`, `kind`, `verdict`, and `site-dir`. Skip `deploy-alias` and upload `site-dir` to GitHub Pages, S3, Netlify, or anywhere else that serves static files.
 
-## Host it anywhere
+## See it in a real project
 
-The site is a folder of static files. `run --deploy-alias` puts it on EAS Hosting. Or upload `evidence/site` to GitHub Pages, GitLab Pages, S3, Netlify, Vercel, or Cloudflare Pages, or keep it as a CI artifact. Pass `--url` when you know the final address, so link previews work. For many runs on one host, run `index` for a landing page over all of them.
+[todo-app](https://github.com/jacobhammerle/todo-app) is a public Expo app built around agentic workflows on Expo Simulators, and it uses this package for every verdict. TestFlight feedback becomes a GitHub issue, an agent reproduces it on a simulator, another agent fixes it, two more review and verify the pull request, and a QA swarm runs lanes on iOS and Android. Each step leaves an evidence page on GitHub. Its [`.eas/workflows/`](https://github.com/jacobhammerle/todo-app/tree/main/.eas/workflows) folder is the place to start.
 
 ## Commands
 
@@ -133,8 +123,8 @@ Every command has `--help`. The full reference, the verdict grammar, the session
 
 ## Requirements
 
-- Node 20 or newer for the tool itself. Expo SDK 58 tooling and eas-cli want Node 22 or newer, so use 22 or newer in CI.
-- An Expo account with EAS Simulator access, for `collect`, `deploy`, and `sweep`. In CI, set `EXPO_TOKEN` to a personal access token. Nothing else touches the network.
+- Node 20 or newer. Expo SDK 58 tooling and eas-cli want 22 or newer, so use that in CI.
+- An Expo account with Expo Simulators access, for `collect`, `deploy`, and `sweep`. In CI, set `EXPO_TOKEN`. Nothing else touches the network.
 
 ## For agents
 

@@ -28,7 +28,8 @@ export async function listLiveSessions({ type, eas, limit = 100 } = {}) {
   const all = [];
   let after;
   for (let page = 0; page < 20; page++) {
-    const args = ["simulator:list", "--status", "new", "--status", "in-progress", "--limit", String(limit)];
+    // Every status before STOPPED/ERRORED. queued and starting arrived with eas-cli 24.9.
+    const args = ["simulator:list", ...["new", "queued", "starting", "in-progress"].flatMap((s) => ["--status", s]), "--limit", String(limit)];
     if (type) args.push("--type", type);
     if (after) args.push("--after", after);
     const out = await eas(args);

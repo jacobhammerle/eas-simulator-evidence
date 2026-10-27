@@ -152,7 +152,7 @@ test("all committed assets are referenced by the builder or the stylesheet", () 
 test("the demo fixture's session.json matches the documented schema", () => {
   const s = readFixtureSession();
   assert.equal(s.schemaVersion, 1);
-  for (const k of ["id", "name", "platform", "type", "status", "createdAt", "startedAt", "finishedAt", "bootMs", "durationMs", "dashboardUrl", "device", "recording", "anchorIso", "metrics", "timeline", "counts", "uploadedScreenshots", "raw", "extra"]) {
+  for (const k of ["id", "name", "tags", "errors", "logs", "platform", "type", "status", "createdAt", "startedAt", "finishedAt", "bootMs", "durationMs", "dashboardUrl", "device", "recording", "anchorIso", "metrics", "timeline", "counts", "uploadedScreenshots", "raw", "extra"]) {
     assert.ok(k in s, k);
   }
   for (const t of s.timeline) {

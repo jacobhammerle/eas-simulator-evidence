@@ -6,9 +6,9 @@
 # plain artifact instead.
 #
 # Secrets:
-#   EXPO_TOKEN   a personal access token with EAS Simulator access
+#   EXPO_TOKEN   a personal access token with Expo Simulators access
 # Inputs you provide:
-#   BUILD_ID     an EAS simulator build id for the PR's code. Get one from
+#   BUILD_ID     an EAS Build simulator build id for the PR's code. Get one from
 #                `eas build --json`, from `eas build:list`, or from an EAS
 #                Workflow that runs first. The step below reads it from a
 #                repository variable to keep the example short.
@@ -84,12 +84,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           URL: ${{ steps.pages.outputs.page_url }}
         run: |
-          VERDICT=$(npx --yes eas-simulator-evidence@latest verdict "$(head -n 1 verdict.txt)" --badge)
-          THUMBS=$(npx --yes eas-simulator-evidence@latest thumbs evidence "$URL")
-          gh pr comment "${{ github.event.pull_request.number }}" --body "## 🤖 Simulator evidence
-
-          **Verdict:** $VERDICT
-
-          🖼️ **Evidence** — $URL
-
-          $THUMBS"
+          npx --yes eas-simulator-evidence@latest comment evidence "$URL" --verdict-file verdict.txt --agent "agent-device" \
+            | gh pr comment "${{ github.event.pull_request.number }}" --body-file -

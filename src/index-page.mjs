@@ -3,22 +3,17 @@
 // and writes an index with a card per run: verdict pill, subject, first
 // screenshot, device, duration, link.
 //
-//   buildIndex({ dir, out, subject, projectName, log }) -> { siteDir, runs }
+//   buildIndex({ dir, out, subject, projectName, log }) -> { siteDir, runs, counts }  (runs is a count)
 //
 // <dir>/<run>/index.html + evidence.json  ->  <out>/index.html (default <dir>/index.html)
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseVerdict } from "./verdict.mjs";
+import { esc } from "./markdown.mjs";
 
 const assetsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "assets");
 
-const esc = (s) =>
-  String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 const fmtDur = (ms) => {
   if (!Number.isFinite(ms)) return "—";
   const s = Math.round(ms / 1000);

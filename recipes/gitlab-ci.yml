@@ -4,8 +4,8 @@
 # GitLab's artifact browser; swap the last lines for EAS Hosting or Pages.
 #
 # CI/CD variables:
-#   EXPO_TOKEN               a personal access token with EAS Simulator access
-#   EAS_SIMULATOR_BUILD_ID   an EAS simulator build id for the code under test
+#   EXPO_TOKEN               a personal access token with Expo Simulators access
+#   EAS_SIMULATOR_BUILD_ID   an EAS Build simulator build id for the code under test
 
 evidence:
   image: node:22

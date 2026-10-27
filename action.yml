@@ -1,5 +1,5 @@
-name: EAS Simulator evidence
-description: Build an evidence site from an EAS Simulator run. Screenshots, verdict, timeline, performance charts. Optionally deploy it to EAS Hosting.
+name: Expo Simulators evidence
+description: Build an evidence site from an Expo Simulators run. Screenshots, verdict, timeline, performance charts. Optionally deploy it to EAS Hosting.
 author: Jacob Hammerle
 branding:
   icon: camera
@@ -23,7 +23,7 @@ inputs:
     description: A text file for the "Agent report" section.
     required: false
   session:
-    description: The EAS Simulator session id. Default is EAS_SIMULATOR_SESSION_ID or .env.eas-simulator.
+    description: The Expo Simulators session id. Default is EAS_SIMULATOR_SESSION_ID or .env.eas-simulator.
     required: false
   stop:
     description: 'Stop the session before collecting. Set this instead of running eas simulator:stop yourself, which clears .env.eas-simulator.'
@@ -67,7 +67,7 @@ inputs:
 
 outputs:
   url:
-    description: The deployed site URL, when deploy-alias was given.
+    description: The site URL, when deploy-alias or url was given.
     value: ${{ steps.run.outputs.url }}
   site-dir:
     description: The folder that holds the built site.

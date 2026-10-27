@@ -27,12 +27,12 @@ export const TARGETS = {
   local: {
     recipe: "local.sh",
     dest: "scripts/evidence.sh",
-    next: "Run it with an EAS simulator build id: bash scripts/evidence.sh <build-id>.",
+    next: "Run it with an EAS Build simulator build id: bash scripts/evidence.sh <build-id>.",
   },
 };
 
 const GITIGNORE_LINES = [
-  "# EAS Simulator session config (holds a session auth token)",
+  "# Expo Simulators session config (holds a session auth token)",
   ".env.eas-simulator",
   "# Evidence produced by simulator runs",
   "evidence/",

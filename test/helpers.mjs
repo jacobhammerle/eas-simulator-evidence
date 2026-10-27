@@ -16,6 +16,8 @@ export const fixture = join(root, "fixtures", "qa-checklist-ios");
 export const outRoot = join(here, ".out", String(process.pid));
 
 export const quiet = { log() {}, warn() {} };
+// Skip marker for tests that write file names Windows rejects.
+export const notWindows = { skip: process.platform === "win32" ? "file name not allowed on Windows" : false };
 
 // A logger that records what it was told, for asserting on warnings.
 export function recorder() {

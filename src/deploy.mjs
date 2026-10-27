@@ -9,6 +9,7 @@
 import { execFileSync } from "node:child_process";
 import { relative, resolve } from "node:path";
 import { DEFAULT_EAS_CLI_VERSION } from "./config.mjs";
+import { parseCliJson } from "./collect.mjs";
 
 // The stable URL an EAS Hosting alias gets: https://<slug>--<alias>.expo.app.
 // Known before the deploy runs, so the page can carry its own address
@@ -19,10 +20,12 @@ export function aliasUrl(slug, alias) {
 }
 
 export function parseDeployOutput(raw) {
-  const s = String(raw ?? "");
-  const start = s.indexOf("{");
-  if (start < 0) throw new Error(`eas deploy printed no JSON:\n${s}`);
-  const d = JSON.parse(s.slice(start));
+  let d;
+  try {
+    d = parseCliJson(raw);
+  } catch {
+    throw new Error(`eas deploy printed no JSON:\n${String(raw ?? "")}`);
+  }
   const aliasUrl = d.aliases?.[0]?.url || "";
   const deploymentUrl = d.url || "";
   if (!aliasUrl && !deploymentUrl) throw new Error("eas deploy printed no URL");

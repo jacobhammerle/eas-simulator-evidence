@@ -6,7 +6,7 @@ node_modules/
 fixtures/*/site/
 test/.out/
 
-# EAS Simulator session config (holds a session auth token)
+# Expo Simulators session config (holds a session auth token)
 .env.eas-simulator
 
 # npm pack output
