@@ -167,6 +167,34 @@ test("normalizeSession keeps the platform's error reasons, trimmed and typed", (
   assert.deepEqual(normalizeSession({ session: { ...raw(), errors: "nope" }, collectedAt: "c" }).errors, []);
 });
 
+test("a screenshot's --pixel-density and --scale fold into one factor for the ring", () => {
+  const ev = (n, type, data, extra = {}) => JSON.stringify({ v: 1, eventId: "ad:" + n, ts: new Date(1700000000000 + n * 1000).toISOString(), producer: "agent-device", operationId: "op" + Math.floor(n / 2), type, summary: extra.summary || "", data, ...extra });
+  const text = [
+    ev(0, "interaction.recorded", { command: "press", x: 158, y: 822, flags: { platform: "ios" } }, { summary: "Tapped @e15" }),
+    ev(1, "operation.completed", { command: "press" }, { summary: "Finished press", outcome: "success" }),
+    ev(2, "interaction.recorded", { command: "screenshot", requestedFileName: "a.png", flags: { platform: "ios", pixelDensity: 3 } }, { summary: "Captured screenshot a.png" }),
+    ev(3, "operation.completed", { command: "screenshot" }, { summary: "Captured screenshot a.png", outcome: "success" }),
+    ev(4, "interaction.recorded", { command: "screenshot", requestedFileName: "b.png", flags: { platform: "ios", pixelDensity: 3, scale: 0.5 } }, { summary: "Captured screenshot b.png" }),
+    ev(5, "operation.completed", { command: "screenshot" }, { summary: "Captured screenshot b.png", outcome: "success" }),
+    ev(6, "interaction.recorded", { command: "screenshot", requestedFileName: "c.png", flags: { platform: "ios" } }, { summary: "Captured screenshot c.png" }),
+    ev(7, "operation.completed", { command: "screenshot" }, { summary: "Captured screenshot c.png", outcome: "success" }),
+  ].join("\n");
+  const tl = normalizeTimeline(text, { anchorIso: null });
+  const shots = tl.filter((t) => t.kind === "screenshot");
+  assert.deepEqual(shots.map((t) => t.scale ?? null), [3, 1.5, null]);
+  assert.deepEqual({ x: tl[0].x, y: tl[0].y, unit: tl[0].xyUnit }, { x: 158, y: 822, unit: "pt" });
+});
+
+test("normalizeSession keeps every simulator-log artifact, the app log first", () => {
+  const emu = { filename: "emulator-output.log", downloadUrl: "https://example.test/emu.log", fileSizeBytes: 10381, metadata: { __eas_type: "simulator-log", scope: "emulator-process", source: "emulator-output", platform: "android" } };
+  const cat = { filename: "device-logcat.log", downloadUrl: "https://example.test/logcat.log", fileSizeBytes: 500, metadata: { __eas_type: "simulator-log", scope: "device", source: "device-logcat" } };
+  const app = { filename: "app-logs.ndjson", downloadUrl: "https://example.test/app.ndjson", fileSizeBytes: 9, metadata: { __eas_type: "simulator-log", scope: "user-apps", source: "serve-sim/logs" } };
+  const s = normalizeSession({ session: withArts([...artifacts(), emu, cat, app]), collectedAt: "c" });
+  assert.equal(s.logs.file, "app-logs.ndjson", "the app log is the primary log");
+  assert.deepEqual(s.logFiles.map((l) => [l.file, l.scope, l.source]), [["app-logs.ndjson", "user-apps", "serve-sim/logs"], ["emulator-output.log", "emulator-process", "emulator-output"], ["device-logcat.log", "device", "device-logcat"]]);
+  assert.deepEqual(normalizeSession({ session: raw(), collectedAt: "c" }).logFiles, []);
+});
+
 test("normalizeSession keeps the simulator app logs artifact as a link", () => {
   const logArt = { filename: "app-logs.ndjson", downloadUrl: "https://example.test/app-logs.ndjson", fileSizeBytes: 4171008, metadata: { __eas_type: "simulator-log", source: "serve-sim/logs" } };
   const s = normalizeSession({ session: withArts([...artifacts(), logArt]), collectedAt: "c" });
@@ -185,6 +213,7 @@ test("normalizeSession with a bare session: nulls, not crashes", () => {
   assert.equal(s.durationMs, null);
   assert.equal(s.recording, null);
   assert.equal(s.logs, null);
+  assert.deepEqual(s.logFiles, []);
   assert.deepEqual(s.errors, []);
   assert.deepEqual(s.device, { name: null, udid: null, runtime: null, hostCores: null });
   assert.deepEqual(s.raw, { metrics: null, events: null });

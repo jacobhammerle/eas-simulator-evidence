@@ -217,13 +217,18 @@ test("a missing evidence dir throws", () => {
   assert.throws(() => buildSite({ subject: "x", verdict: "PASS: x", log: quiet }), /evidence dir not found/);
 });
 
-test("an Android session gets no Try this build button (create-session links are iOS only)", () => {
+test("the Try this build link names the platform: android for an emulator run, ios otherwise", () => {
   const s = readFixtureSession();
   s.platform = "ANDROID";
   const dir = makeEvidence({ images: ["1-a.png"], session: s });
   const out = fresh("android-launch");
   buildSite({ dir, subject: "x", verdict: "PASS: x", out, log: quiet, expoOwner: "o", expoSlug: "s", buildId: "0123456789abcdef0123456789abcdef" });
-  assert.doesNotMatch(html(out), /Try this build/);
+  const h = html(out);
+  assert.match(h, /Try this build on an emulator/);
+  assert.match(h, /simulator-sessions\/create\?buildId=0123456789abcdef0123456789abcdef&amp;name=[^"]*&amp;platform=android"/);
+  const { h: ios } = full();
+  assert.match(ios, /&amp;platform=ios"/);
+  assert.match(ios, /Try this build on a simulator/);
 });
 
 test("the Try this build button needs an owner, a slug, and a real-looking build id", () => {
@@ -259,7 +264,7 @@ test("a subject longer than the platform's name limit is cut, not the preview ma
   const out = fresh("long-subject");
   const subject = "S".repeat(300);
   buildSite({ dir: fixture, subject, verdict: "PASS: ok", out, projectName: "App", expoOwner: "o", expoSlug: "s", buildId: "0123456789abcdef0123456789abcdef", log: quiet });
-  const m = html(out).match(/simulator-sessions\/create\?buildId=[^&]+&amp;name=([^"]+)"/);
+  const m = html(out).match(/simulator-sessions\/create\?buildId=[^&]+&amp;name=([^"&]+)/);
   assert.ok(m);
   const name = decodeURIComponent(m[1].replace(/\+/g, " "));
   assert.ok(name.length <= 255, String(name.length));
@@ -268,7 +273,7 @@ test("a subject longer than the platform's name limit is cut, not the preview ma
 
 test("the create-session link names the session after the subject with the preview marker", () => {
   const { h } = full();
-  const m = h.match(/simulator-sessions\/create\?buildId=[^&]+&amp;name=([^"]+)"/);
+  const m = h.match(/simulator-sessions\/create\?buildId=[^&]+&amp;name=([^"&]+)/);
   assert.ok(m);
   assert.equal(decodeURIComponent(m[1].replace(/\+/g, " ")), "QA swarm · iOS · checklist · evidence-site preview");
 });

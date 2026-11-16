@@ -230,10 +230,12 @@ export function normalizeTimeline(eventsText, { anchorIso } = {}) {
       if (typeof e.data?.target === "string" && e.data.target.trim()) op.target = e.data.target.trim();
       if (typeof e.data?.targetLabel === "string" && e.data.targetLabel.trim())
         op.targetLabel = e.data.targetLabel.trim();
-      // A screenshot's --scale flag. Points × scale = image pixels, which
-      // the page needs to place a tap ring on the image.
-      const scale = Number(e.data?.flags?.scale);
-      if (Number.isFinite(scale) && scale > 0) op.scale = scale;
+      // A screenshot's --scale (0.01 to 1) and --pixel-density flags.
+      // Points × density × scale = image pixels, which the page needs to
+      // place a tap ring on the image. Default capture is 1x points.
+      const pos = (v) => (Number.isFinite(v) && v > 0 ? v : 1);
+      const factor = pos(Number(e.data?.flags?.pixelDensity)) * pos(Number(e.data?.flags?.scale));
+      if (factor !== 1) op.scale = factor;
     }
     ops.set(e.operationId, op);
   }
@@ -312,8 +314,13 @@ export function normalizeSession({
   const artifacts = Array.isArray(session.artifacts) ? session.artifacts : [];
   const metricsArt = artifacts.find((a) => artType(a) === "performance-metrics");
   const recordingArt = artifacts.find((a) => artType(a) === "screen-recording");
-  // App logs from the simulator (eas-cli 24.9+ attaches them as "simulator-log").
-  const logsArt = artifacts.find((a) => artType(a) === "simulator-log");
+  // Logs the platform attaches as "simulator-log": the iOS app log
+  // (scope user-apps), the Android emulator output, and device logcat when
+  // the session asked for it. The app log, if any, comes first.
+  const logArts = artifacts
+    .filter((a) => artType(a) === "simulator-log")
+    .sort((a, b) => (b.metadata?.scope === "user-apps") - (a.metadata?.scope === "user-apps"));
+  const logsArt = logArts[0];
   const shotArts = artifacts.filter(
     (a) => /\.(png|jpe?g)$/i.test(a?.filename || "") && !artType(a),
   );
@@ -379,6 +386,12 @@ export function normalizeSession({
         }
       : null,
     logs: logsArt ? { ...artLink(logsArt), file: logsArt.filename || null } : null,
+    logFiles: logArts.map((a) => ({
+      ...artLink(a),
+      file: a.filename || null,
+      scope: text(a.metadata?.scope) || null,
+      source: text(a.metadata?.source) || null,
+    })),
     anchorIso,
     metrics,
     timeline,

@@ -1,7 +1,7 @@
 <h1 align="center">eas-simulator-evidence</h1>
 
 <p align="center">
-  Proof of what happened on an <a href="https://docs.expo.dev/preview/eas-simulator/introduction/">Expo Simulators</a> run, as one page anyone can open.<br>
+  Proof of what happened on an <a href="https://docs.expo.dev/eas/simulators/introduction/">Expo Simulators</a> run, as one page anyone can open.<br>
   The verdict, the screenshots, every tap, the performance charts, and the recording. Static, shareable, no login.
 </p>
 
@@ -46,7 +46,7 @@ npm run demo
 - **Screenshots** in capture order, each with a ring where the tap landed.
 - **The timeline**: every tap, swipe, and screen read, with timing. A tap links to its screenshot. A time plays the recording from that moment.
 - **Performance**: CPU, memory, and network for the whole run.
-- **The agent's report**, the recording, a "Try this build" button, and the raw data.
+- **The agent's report**, the recording, the app logs, a "Try this build" button for iOS or Android, and the raw data.
 
 One `index.html` plus assets. It opens from `file://`, works on a phone, and follows light or dark mode.
 
@@ -56,7 +56,7 @@ You provide three things: a folder of screenshots, a subject, and a verdict line
 
 ```sh
 # 1. Start a cloud simulator with your build installed, then drive it your way
-npx eas-cli@latest simulator:start --platform ios --type agent-device \
+npx eas-cli@latest simulator:start --platform ios --type agent-device --max-duration-minutes 30 \
   --build-id "$BUILD_ID" --non-interactive --name "PR #12 evidence"
 npx eas-cli@latest simulator:exec npx agent-device@latest screenshot evidence/1-home.png --platform ios
 
@@ -124,7 +124,7 @@ Every command has `--help`. The full reference, the verdict grammar, the session
 ## Requirements
 
 - Node 20 or newer. Expo SDK 58 tooling and eas-cli want 22 or newer, so use that in CI.
-- An Expo account with Expo Simulators access, for `collect`, `deploy`, and `sweep`. In CI, set `EXPO_TOKEN`. Nothing else touches the network.
+- An Expo account on a paid plan, which is where Expo Simulators is available, for `collect`, `deploy`, and `sweep`. In CI, set `EXPO_TOKEN`. Nothing else touches the network.
 
 ## For agents
 

@@ -38,7 +38,7 @@ jobs:
       - name: Start a cloud simulator with the build installed
         run: |
           mkdir -p evidence
-          npx --yes eas-cli@latest simulator:start --platform ios --type agent-device \
+          npx --yes eas-cli@latest simulator:start --platform ios --type agent-device --max-duration-minutes 30 \
             --build-id "$BUILD_ID" --max-duration-minutes 20 --non-interactive \
             --name "PR #${{ github.event.pull_request.number }} evidence"
 

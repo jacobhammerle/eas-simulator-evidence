@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-16
+
+### Added
+
+- "Try this build" on Android runs too. expo.dev create-session links now support both platforms, so the button carries `platform=android` for an emulator run and `platform=ios` otherwise. The note under it says a session stops after 115 minutes at most.
+- Every log the platform attaches is linked from the raw data section: the iOS app log, and on Android the emulator output plus device logcat when the session started with `--log-source device-logcat`. `session.json` keeps them as `logFiles`; `logs` stays the first one.
+
+### Fixed
+
+- Tap rings on screenshots taken with agent-device's `--pixel-density` landed in the wrong place, because the collector only read `--scale`. Both flags now fold into one factor, and a 3x capture after a tap gets its ring where the tap was.
+
+### Changed
+
+- The pinned eas-cli is 27.10.0 (was 26.0.0), the first release after Expo Simulators became generally available on paid plans. `simulator:get`, `simulator:list`, `simulator:stop`, and `deploy` keep their flags and JSON shapes; `simulator:start` gained `--log-source` and `--import`. Checked live on an iOS session and on post-launch iOS and Android sessions.
+- The docs links point at the new `docs.expo.dev/eas/simulators/` section, the README says Expo Simulators is on paid plans, every recipe and the README example start sessions with `--max-duration-minutes 30`, and the reference no longer claims a 30-day artifact retention: artifacts stay until the session is deleted, and each link redirects to a signed URL that lasts an hour.
+- The skill covers the Android emulator log and logcat, the new link behavior, `--pixel-density`, and the duration cap.
+
 ## [0.2.4] - 2026-10-27
 
 ### Added

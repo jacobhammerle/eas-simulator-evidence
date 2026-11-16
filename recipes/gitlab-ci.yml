@@ -16,7 +16,7 @@ evidence:
   script:
     - mkdir -p evidence
     - >
-      npx --yes eas-cli@latest simulator:start --platform ios --type agent-device
+      npx --yes eas-cli@latest simulator:start --platform ios --type agent-device --max-duration-minutes 30
       --build-id "$BUILD_ID" --max-duration-minutes 20 --non-interactive
       --name "MR !$CI_MERGE_REQUEST_IID evidence"
     # Drive the app: replace with your agent, Maestro flow, or script.

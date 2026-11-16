@@ -17,7 +17,7 @@ It never fails your pipeline. Without a session id or with a session it cannot r
 | `--dotenv <path>` | Dotenv file to read the session id from |
 | `--extra k=v` | Extra fact stored in `session.json`. Repeatable |
 | `--wait <seconds>` | Max wait for the artifacts. Default 180 |
-| `--eas-cli-version <v>` | Version of eas-cli to run through `npx`. Default: `EAS_CLI_VERSION`, then the pinned release (`26.0.0`) |
+| `--eas-cli-version <v>` | Version of eas-cli to run through `npx`. Default: `EAS_CLI_VERSION`, then the pinned release (`27.10.0`) |
 | `--screenshots` | Download the session's own screenshots into `<dir>` as `1-capture.png`, `2-capture.png`, ... in capture order. Only when `<dir>` holds no images yet |
 | `--json` | Print a JSON summary to stdout |
 
@@ -108,7 +108,7 @@ One page over many built sites. Each run is a subfolder of `<dir>` that holds `i
 
 ### sweep
 
-Stops live simulator sessions that the "Try this build" button started once they are older than the limit. Those sessions come from expo.dev create-session links, which cannot set a duration, so they run until stopped or until the plan's maximum duration. Run this on a schedule with an `EXPO_TOKEN` that can manage sessions. It only touches sessions whose name ends with the suffix, and it never fails the caller.
+Stops live simulator sessions that the "Try this build" button started once they are older than the limit. Those sessions come from expo.dev create-session links, which cannot set a duration, so each one runs for up to 115 minutes unless someone stops it. Run this on a schedule with an `EXPO_TOKEN` that can manage sessions. It only touches sessions whose name ends with the suffix, and it never fails the caller.
 
 | Option | Meaning |
 | --- | --- |
@@ -140,7 +140,7 @@ Copies a recipe into the conventional place and adds `.env.eas-simulator` and `e
 
 ## GitHub Action
 
-The repository is also a composite action. It runs the CLI that ships with the tag, so `@v0` is the 0.x line and `@v0.2.3` is one release.
+The repository is also a composite action. It runs the CLI that ships with the tag, so `@v0` is the 0.x line and `@v0.3.0` is one release.
 
 ```yaml
 - uses: jacobhammerle/eas-simulator-evidence@v0
@@ -201,7 +201,7 @@ Agents do not always write the line cleanly, so every reader normalizes it the s
 - `session/` with `session.json` and the NDJSON files, when collected
 - `evidence.json`, a manifest: `schemaVersion`, `generatedAt`, `subject`, `verdict`, `kind`, `projectName`, `agentName`, `url`, `buildId`, `images`, `firstImage`, `videos`, `report` (length), and `session` (id, name, tags, errors, platform, status, device, runtime, durationMs, bootMs, counts, dashboardUrl). The `index` command and bots read this instead of the HTML.
 
-The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each screenshot that followed a tap shows a ring at the tap's position. argent reports taps as a fraction of the screen. agent-device reports points, which the page maps onto the image: at the default 1x capture the image's pixel size is the point size, and when the screenshot was taken with `--scale`, the collector keeps that flag (`scale` on the timeline entry) and the page divides by it. In the timeline, an input step links to the screenshot that followed it, before the next input. When the session has a recording, the page embeds it under "Recording" with `preload="none"`, so nothing downloads until play; the hero shows a "Watch the run" button, and every time in the timeline plays the recording from that moment. The performance charts mark taps (dashed) and the app launch (solid), and hovering or touching a chart shows the value at that moment plus the agent's step within 2.5 s of it. A banner above the verdict says when the session errored, with the platform's reason when `simulator:get` reported one, or was still running at collection time.
+The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each screenshot that followed a tap shows a ring at the tap's position. argent reports taps as a fraction of the screen. agent-device reports points, which the page maps onto the image: at the default 1x capture the image's pixel size is the point size, and when the screenshot was taken with `--pixel-density` or `--scale`, the collector folds both into one factor (`scale` on the timeline entry) and the page divides by it. In the timeline, an input step links to the screenshot that followed it, before the next input. When the session has a recording, the page embeds it under "Recording" with `preload="none"`, so nothing downloads until play; the hero shows a "Watch the run" button, and every time in the timeline plays the recording from that moment. The performance charts mark taps (dashed) and the app launch (solid), and hovering or touching a chart shows the value at that moment plus the agent's step within 2.5 s of it. A banner above the verdict says when the session errored, with the platform's reason when `simulator:get` reported one, or was still running at collection time.
 
 ## Session data
 
@@ -215,7 +215,8 @@ The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each scr
 | `device` | `name`, `runtime`, `udid`, `hostCores` |
 | `dashboardUrl` | The session on expo.dev |
 | `recording` | `url`, `bytes`, `width`, `height`, `firstFrameAt`. Linked, never copied |
-| `logs` | `url`, `bytes`, `file` of the simulator's app log artifact (`simulator-log`, eas-cli 24.9 and newer), or `null`. Linked from the page's raw data, never copied |
+| `logs` | `url`, `bytes`, `file` of the first log artifact (`simulator-log`): the iOS app log when there is one. `null` when the session has none |
+| `logFiles[]` | Every `simulator-log` artifact: `url`, `bytes`, `file`, `scope`, `source`. iOS sessions attach `app-logs.ndjson`; Android sessions attach `emulator-output.log`, plus device logcat when the session started with `--log-source device-logcat`. All linked from the page's raw data |
 | `anchorIso` | The instant timeline offsets count from: the recording's first frame, else session start |
 | `metrics` | `null` on Android, which uploads no metrics. Otherwise `samples` and `summary` |
 | `metrics.samples[]` | One sample per second: `t`, `cpu`, `memMB`, `netIn`, `netOut`, `app` |
@@ -225,7 +226,7 @@ The page itself: `#shot-N` in the URL opens the viewer on screenshot N. Each scr
 | `uploadedScreenshots[]` | The screenshots the platform kept, with their artifact URLs |
 | `extra` | The `--extra` pairs you passed |
 
-The links into expo.dev (`recording.url`, `logs.url`, `uploadedScreenshots[].url`) point at the platform's own artifacts, which it keeps for 30 days. The screenshots the page shows are copied into the site, so the page itself keeps working after that; the recording and the logs do not.
+The links into expo.dev (`recording.url`, `logs.url`, `logFiles[].url`, `uploadedScreenshots[].url`) are the platform's stable artifact addresses. Each request redirects to a signed URL that lasts an hour, and the artifacts stay until someone deletes the session on expo.dev. The screenshots the page shows are copied into the site, so the page keeps working even then.
 
 Timeline `kind` is one of `tap`, `type`, `swipe`, `open`, `describe`, `screenshot`, `wait`, `alert`, `recording`, `other`. The timeline reads both agent-device and argent event shapes. agent-device entries also carry `target` (the ref or selector the command aimed at) and, when the controller resolved one, `targetLabel`, which then names the tap (`Tapped "Checklist"`); a screenshot taken with `--scale` carries `scale`.
 
@@ -256,7 +257,7 @@ Also exported: `normalizeSession`, `normalizeTimeline`, `normalizeMetrics`, `par
 
 ## Access and tokens
 
-- Expo Simulators sessions need an Expo account with access to the feature. In CI, set `EXPO_TOKEN` to a personal access token from expo.dev → Account → Access tokens. Inside EAS Workflows the token EAS injects is restricted and cannot create sessions, so store a personal token as a separate variable and export it as `EXPO_TOKEN` in the job.
+- Expo Simulators sessions need an Expo account on a paid plan (Starter, Production, or Enterprise). In CI, set `EXPO_TOKEN` to a personal access token from expo.dev → Account → Access tokens. Inside EAS Workflows the token EAS injects is restricted and cannot create sessions, so store a personal token as a separate variable and export it as `EXPO_TOKEN` in the job.
 - `.env.eas-simulator` holds a session token. Keep it out of git.
 - `collect` and `deploy` run eas-cli through `npx`. Nothing else in the tool talks to the network.
 

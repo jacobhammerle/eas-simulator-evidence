@@ -181,6 +181,11 @@ test("the raw data section links the session's app logs when there are any", () 
   assert.match(html(out), /href="https:\/\/example\.test\/app-logs\.ndjson"[^>]*>[\s\S]*?app-logs\.ndjson ↗/);
   const { h } = build();
   assert.doesNotMatch(h, /app-logs\.ndjson/);
+  // Every log file gets a card; an older session.json with only `logs` still gets one.
+  const two = { ...readFixtureSession(), logs: null, logFiles: [{ url: "https://example.test/emulator-output.log", bytes: 1, file: "emulator-output.log", scope: "emulator-process", source: "emulator-output" }, { url: "https://example.test/device-logcat.log", bytes: 1, file: "device-logcat.log", scope: "device", source: "device-logcat" }] };
+  const out3 = fresh("logs-two");
+  buildSite({ dir: makeEvidence({ images: ["1-home.png"], session: two }), subject: "PR #1", verdict: "PASS: ok", out: out3, log: quiet });
+  assert.match(html(out3), /emulator-output\.log ↗[\s\S]*device-logcat\.log ↗/);
   const unsafe = { ...readFixtureSession(), logs: { url: "javascript:alert(1)", bytes: 1, file: "x" } };
   const out2 = fresh("logs-unsafe");
   buildSite({ dir: makeEvidence({ images: ["1-home.png"], session: unsafe }), subject: "PR #1", verdict: "PASS: ok", out: out2, log: quiet });

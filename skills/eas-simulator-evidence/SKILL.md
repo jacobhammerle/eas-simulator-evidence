@@ -26,7 +26,8 @@ You produce three things. The tool does the rest.
 The eas-simulator skill covers starting and driving the session. Three things there matter for the page:
 
 - Start with `--name "<what this run checks>"` and, if the project groups runs, `--tag <label>`. Both show on the page and on expo.dev.
-- Start with `--build-id` when you have one. The page then gets a "Try this build" button (iOS only).
+- Start with `--build-id` when you have one. The page then gets a "Try this build" button, on iOS and Android.
+- Start with `--max-duration-minutes` in CI. A session runs for up to 115 minutes otherwise, and a `--non-interactive` start keeps running after the command returns.
 - Save screenshots as you go, named as in the contract. A screenshot taken right after a tap gets a ring where the tap landed.
 
 ## Order of operations
@@ -59,7 +60,7 @@ Lessons from real runs with agent-device on Expo Simulators:
 - **Press the control, not its label.** In a list row the label and the switch are separate nodes. A press on the label node does nothing and the run is wrong without any error. Press the `[switch]`, `[button]`, or `[cell]` node, then read the tree to see the value change.
 - **Verify from the tree, not from the tap.** A tap that "worked" proves nothing. Before you write PASS for a screen, find its evidence in the tree: the tab button marked `[selected]`, a `screen-<name>` node, a heading. Put that check in the report.
 - **Wait after a tap.** Two to four seconds before the screenshot, or the capture shows the old screen.
-- **Screenshot after the tap you want to show.** The page draws a ring on a screenshot where the last tap before it landed, and links that tap to the screenshot in the timeline. A tap with no screenshot before the next tap gets neither. Keep screenshots at the default scale, or pass `--scale` so the session records it and the ring still lands.
+- **Screenshot after the tap you want to show.** The page draws a ring on a screenshot where the last tap before it landed, and links that tap to the screenshot in the timeline. A tap with no screenshot before the next tap gets neither. The default capture is 1x points; `--pixel-density 3` gives full resolution and `--scale 0.5` a smaller file, and the ring still lands in all three cases.
 - **Name and tag the session** with `--name "<what this run checks>"` and `--tag <label>` (repeatable, stored lowercased). The name is how a human finds it on expo.dev later, and tags group runs there (`simulator:list --tag`). The page shows both in the facts row.
 - **Stop through the tool.** `run --stop` stops the session and keeps its id. A manual `eas simulator:stop` first clears `.env.eas-simulator` and the page ends up with no session data.
 - **One session per run.** If a session is still booting, wait for it. Starting another creates a second bill and overwrites the dotenv.
@@ -69,8 +70,8 @@ Lessons from real runs with agent-device on Expo Simulators:
 The same commands work with `--platform android`. Pick the emulator image with `--system-image` on `simulator:start` when the default is not the one the run needs. What differs on the page:
 
 - **No performance section.** Android sessions upload no CPU or memory metrics. The page has no "Performance" section and `metrics` is null in `session.json`. This is expected, not a failed collect. The collector does not wait for metrics on Android.
-- **No "Try this build" button.** expo.dev create-session links open an iOS preview only, so the page leaves the button out.
-- **`open` takes the application id**, for example `com.example.app`, where iOS takes the bundle id. Tap rings, the timeline, and the recording work the same.
+- **Logs are the emulator output**, as `emulator-output.log` in the raw data. Add `--log-source device-logcat` to `simulator:start` for device logcat as well; it can hold personal data, so think before you host that page publicly.
+- **`open` takes the application id**, for example `com.example.app`, where iOS takes the bundle id. Tap rings, the timeline, the recording, and the "Try this build" button work the same.
 
 ## Rules
 

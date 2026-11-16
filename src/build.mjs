@@ -269,8 +269,8 @@ const videos = files.filter((f) => /\.(mp4|mov)$/i.test(f));
 // The tap that led to each screenshot: the last tap before the capture.
 // argent reports taps as a fraction of the screen. agent-device reports
 // points; the screenshot's own pixel size is the point size at the
-// default 1x capture, and the collector keeps the --scale flag when one
-// was passed, so points map onto the image too.
+// default 1x capture, and the collector folds --pixel-density and --scale
+// into one factor when either was passed, so points map onto the image too.
 const sizes = images.map((f) => imageSize(join(evidenceDir, f)));
 const tapForShot = new Map();
 if (session) {
@@ -473,15 +473,15 @@ ${facts.map(([k, val, cls]) => `  <div class="fact${String(val).length > 24 ? " 
   platformRecUrl = recUrl;
 
   // "Try this build": an expo.dev create-session link starts a fresh
-  // browser-preview simulator session with the same EAS build the agent
-  // ran (docs.expo.dev/preview/eas-simulator/create-session-links). It
-  // needs the full build id; the facts strip shows only a prefix. Every
-  // open starts a new billable session, so the note says so. Links cannot
-  // set a duration, so the name carries a marker suffix ("evidence-site
-  // preview") that a cleanup job can match to stop these sessions.
-  // Create-session links open an iOS browser preview only, so an Android
-  // run gets no button.
-  if (!isEmulator && expoOwner && expoSlug && /^[0-9a-f-]{20,}$/i.test(String(x.build_id || ""))) {
+  // browser-preview session with the same build the agent ran
+  // (docs.expo.dev/eas/simulators/how-to/hand-off-a-session). It needs the
+  // full build id; the facts strip shows only a prefix. Every open starts a
+  // new billable session, so the note says so. Links cannot set a duration
+  // (the session gets the 115-minute maximum), so the name carries a marker
+  // suffix ("evidence-site preview") that sweep can match to stop these
+  // sessions early. Links support both platforms; the platform parameter
+  // picks the emulator for an Android build.
+  if (expoOwner && expoSlug && /^[0-9a-f-]{20,}$/i.test(String(x.build_id || ""))) {
     const createUrl = new URL(
       `https://expo.dev/accounts/${expoOwner}/projects/${expoSlug}/simulator-sessions/create`,
     );
@@ -493,10 +493,11 @@ ${facts.map(([k, val, cls]) => `  <div class="fact${String(val).length > 24 ? " 
       "name",
       `${String(subject).slice(0, 255 - sep.length - PREVIEW_SUFFIX.length)}${sep}${PREVIEW_SUFFIX}`,
     );
+    createUrl.searchParams.set("platform", isEmulator ? "android" : "ios");
     launchBtns.push(
-      `<a class="btn" href="${esc(createUrl.toString())}" target="_blank" rel="noopener" title="Starts a new Expo Simulators session with this build">${icon("smartphone")}Try this build on a simulator${icon("external-link")}</a>`,
+      `<a class="btn" href="${esc(createUrl.toString())}" target="_blank" rel="noopener" title="Starts a new Expo Simulators session with this build">${icon("smartphone")}Try this build on ${isEmulator ? "an emulator" : "a simulator"}${icon("external-link")}</a>`,
     );
-    launchNote = `<span class="launch-note">Starts a new browser-preview session on expo.dev under your account. It runs until you stop it or it reaches your plan's maximum duration. Sign in with an Expo account that can access this project.</span>`;
+    launchNote = `<span class="launch-note">Starts a new browser-preview session on expo.dev under your account. It stops when you stop it, or after 115 minutes at most. Sign in with an Expo account that can access this project.</span>`;
   }
   if (recUrl)
     launchBtns.push(
@@ -768,8 +769,10 @@ ${rows.join("\n")}
     rawCards.push(["./session/events.ndjson", "list", "events.ndjson", false]);
   if (safeUrl(session.recording?.url))
     rawCards.push([session.recording.url, "video", "recording.mp4 ↗", true]);
-  if (safeUrl(session.logs?.url))
-    rawCards.push([session.logs.url, "terminal", `${session.logs.file || "app-logs.ndjson"} ↗`, true]);
+  // Every log the platform kept. Older session.json files have only `logs`.
+  const logFiles = Array.isArray(session.logFiles) && session.logFiles.length ? session.logFiles : session.logs ? [session.logs] : [];
+  for (const l of logFiles)
+    if (safeUrl(l?.url)) rawCards.push([l.url, "terminal", `${l.file || "app-logs.ndjson"} ↗`, true]);
   rawHtml = `<section id="data">
   ${sectionHead("Raw data", `<code class="kind">session ${esc(session.id.slice(0, 8))}</code>`)}
   <div class="raw">

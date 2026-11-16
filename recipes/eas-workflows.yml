@@ -73,7 +73,7 @@ jobs:
           export EXPO_TOKEN="$EXPO_TOKEN_SIMULATOR"
           mkdir -p evidence
 
-          npx --yes eas-cli@latest simulator:start --platform ios --type agent-device \
+          npx --yes eas-cli@latest simulator:start --platform ios --type agent-device --max-duration-minutes 30 \
             --build-id "$BUILD_ID" --max-duration-minutes 20 --non-interactive \
             --name "PR #$PR_NUMBER evidence"
           trap 'npx --yes eas-cli@latest simulator:stop --non-interactive >/dev/null 2>&1 || true' EXIT

@@ -13,7 +13,7 @@ rm -rf "$EVIDENCE" && mkdir -p "$EVIDENCE"
 # 1. Start a session with the build preinstalled and launched. eas-cli
 #    writes the session id and the controller's connection info to
 #    .env.eas-simulator (keep that file out of git).
-npx --yes eas-cli@latest simulator:start --platform ios --type agent-device \
+npx --yes eas-cli@latest simulator:start --platform ios --type agent-device --max-duration-minutes 30 \
   --build-id "$BUILD_ID" --max-duration-minutes 20 --non-interactive \
   --name "Local evidence run"
 trap 'npx --yes eas-cli@latest simulator:stop --non-interactive >/dev/null 2>&1 || true' EXIT
